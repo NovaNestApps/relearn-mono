@@ -9,6 +9,7 @@ AI-powered learning system that turns any webpage into structured knowledge — 
 | **AI Webpage Reader** | [`ai-webpage-reader/`](ai-webpage-reader/) | Chrome extension — reads pages, generates summaries/Q&A on-device |
 | **Backend** | [`webpage-reader-backend/`](webpage-reader-backend/) | Fastify/TypeScript API — auth, persistence, AI job queue |
 | **Relearn Web** | [`webpage-reader-web/`](webpage-reader-web/) | Next.js 14 app — study sessions, flashcards, quizzes, adaptive memory |
+| **Relearn Mobile** | [`webpage-reader-mobile/`](webpage-reader-mobile/) | Flutter mobile app — auth, summaries, flashcards, quizzes, settings |
 
 ## Architecture
 
@@ -16,7 +17,7 @@ AI-powered learning system that turns any webpage into structured knowledge — 
 Chrome Extension (ai-webpage-reader)
   │  Extracts page content
   │  Generates summaries locally (Chrome AI / Ollama / WebLLM)
-  │  Syncs saved summaries to backend
+  │  Syncs saved summaries + quizzes + flashcards to backend
   ▼
 Backend API (webpage-reader-backend) — localhost:3001
   │  Fastify + TypeScript + Prisma + PostgreSQL
@@ -24,9 +25,12 @@ Backend API (webpage-reader-backend) — localhost:3001
   │  Socket.io realtime events (Redis adapter)
   ▼
 Web App (webpage-reader-web) — localhost:3000
-     Next.js 14 (App Router)
-     Adaptive spaced-repetition study
-     Flashcards, quizzes, teach-back, concept maps
+  │  Next.js 14 (App Router)
+  │  Adaptive spaced-repetition study
+  ▼
+Mobile App (webpage-reader-mobile)
+     Flutter + Riverpod + go_router
+     Summaries, flashcards, quizzes, user settings
 ```
 
 ## Quick Start (Full Stack)
@@ -36,6 +40,7 @@ Web App (webpage-reader-web) — localhost:3000
 - Node.js 18+
 - Docker & Docker Compose
 - Chrome (for extension)
+- Flutter SDK (for mobile)
 
 ### 1. Start infrastructure
 
@@ -67,7 +72,18 @@ npm run dev
 # Running at http://localhost:3000
 ```
 
-### 4. Chrome extension
+### 4. Mobile app
+
+```bash
+cd webpage-reader-mobile
+flutter pub get
+# Android emulator
+flutter run --dart-define=API_BASE_URL=http://10.0.2.2:3001/api
+# iOS simulator/macOS
+# flutter run --dart-define=API_BASE_URL=http://localhost:3001/api
+```
+
+### 5. Chrome extension
 
 ```
 1. Open chrome://extensions/
@@ -76,7 +92,7 @@ npm run dev
 4. Set backend URL to http://localhost:3001 in extension settings
 ```
 
-### 5. Pull Ollama model (first time)
+### 6. Pull Ollama model (first time)
 
 ```bash
 docker exec -it docker-ollama-1 ollama pull llama3.2
@@ -99,9 +115,10 @@ docker exec -it docker-ollama-1 ollama pull llama3.2
 1. User installs Chrome extension and browses to any webpage
 2. Extension extracts DOM content and generates summary locally (no backend required)
 3. User can save summaries to backend (requires account)
-4. Backend queues AI jobs via BullMQ → Ollama generates flashcards and quizzes
-5. Web app fetches content, displays study queue, tracks spaced repetition via `StudyEvent`s
-6. Realtime sync via Socket.io keeps extension and web app in sync
+4. Extension can sync generated quizzes and flashcards to backend when authenticated
+5. Backend queues AI jobs via BullMQ → Ollama generates flashcards and quizzes
+6. Web and mobile apps fetch summaries/flashcards/quizzes and render study experiences
+7. Realtime sync via Socket.io keeps extension and web app in sync
 
 ## Shared Data Model
 
@@ -126,7 +143,8 @@ All entities cascade-delete on parent removal. Users own all their data via JWT-
 webpage-reader-mono/
 ├── ai-webpage-reader/      # Chrome extension (vanilla JS, MV3)
 ├── webpage-reader-backend/ # Fastify API server (TypeScript)
-└── webpage-reader-web/     # Next.js 14 web app (TypeScript)
+├── webpage-reader-web/     # Next.js 14 web app (TypeScript)
+└── webpage-reader-mobile/  # Flutter mobile app
 ```
 
-Each project has its own `package.json`, git history, and can be developed independently.
+Each project has its own `package.json`/tooling and can be developed independently.
