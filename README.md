@@ -6,7 +6,7 @@ AI-powered learning system that turns any webpage into structured knowledge — 
 
 | Project | Path | Purpose |
 |---------|------|---------|
-| **AI Webpage Reader** | [`relearn-chrome-extension/`](relearn-chrome-extension/) | Chrome extension — reads pages, generates summaries/Q&A on-device |
+| **Relearn** | [`relearn-chrome-extension/`](relearn-chrome-extension/) | Chrome extension — reads pages, generates summaries/Q&A on-device |
 | **Backend** | [`relearn-backend/`](relearn-backend/) | Fastify/TypeScript API — auth, persistence, AI job queue |
 | **Relearn Web** | [`relearn-web/`](relearn-web/) | Next.js 14 app — study sessions, flashcards, quizzes, adaptive memory |
 | **Relearn Mobile** | [`relearn-mobile/`](relearn-mobile/) | Flutter mobile app — auth, summaries, flashcards, quizzes, settings |

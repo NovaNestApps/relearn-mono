@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# AI Webpage Reader Backend - Complete API Test Script
+# Relearn Backend - Complete API Test Script
 # This script tests all endpoints in order
 
 BASE_URL="http://localhost:3001"
@@ -10,7 +10,7 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 echo -e "${BLUE}=====================================${NC}"
-echo -e "${BLUE}AI Webpage Reader Backend API Tests${NC}"
+echo -e "${BLUE}Relearn Backend API Tests${NC}"
 echo -e "${BLUE}=====================================${NC}\n"
 
 # Function to print test headers

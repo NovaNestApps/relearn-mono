@@ -1,4 +1,4 @@
-# AI Webpage Reader — Claude Instructions
+# Relearn — Claude Instructions
 
 ## Project Type
 

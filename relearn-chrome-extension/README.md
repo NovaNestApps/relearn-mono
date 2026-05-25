@@ -1,4 +1,4 @@
-# AI Webpage Reader — Chrome Extension
+# Relearn — Chrome Extension
 
 Chrome extension (Manifest V3) that reads any webpage with AI and generates summaries, Q&A, flashcards, and quizzes. Runs fully on-device — no account required.
 
