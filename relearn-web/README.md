@@ -19,7 +19,7 @@ Next.js 14 web app for AI-powered adaptive learning. Turn webpages into structur
 ### Prerequisites
 
 - Node.js 18+
-- Backend API running at `http://localhost:3001` (see `webpage-reader-backend/`)
+- Backend API running at `http://localhost:3001` (see `relearn-backend/`)
 
 ### Install and run
 
@@ -58,7 +58,7 @@ All routes except `/`, `/auth/login`, `/auth/register` redirect to login if unau
 ## Project Structure
 
 ```
-webpage-reader-web/
+relearn-web/
 ├── src/
 │   ├── app/                        # Next.js App Router pages
 │   │   ├── page.tsx                # Landing page

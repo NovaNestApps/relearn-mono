@@ -135,7 +135,7 @@ All routes except `/health` and `/api/auth/register|login|refresh` require `Auth
 ## Project Structure
 
 ```
-webpage-reader-backend/
+relearn-backend/
 ├── docker/
 │   └── docker-compose.yml          # PostgreSQL, Redis, Ollama, Adminer
 ├── nginx/

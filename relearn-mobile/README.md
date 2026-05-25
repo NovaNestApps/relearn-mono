@@ -1,4 +1,4 @@
-# webpage-reader-mobile
+# relearn-mobile
 
 Flutter mobile client for Webpage Reader backend.
 
@@ -26,12 +26,12 @@ Flutter mobile client for Webpage Reader backend.
 ## Prerequisites
 
 - Flutter SDK installed (`flutter --version`)
-- Backend running at port 3001 (`webpage-reader-backend`)
+- Backend running at port 3001 (`relearn-backend`)
 
 ## Run
 
 ```bash
-cd webpage-reader-mobile
+cd relearn-mobile
 flutter pub get
 ```
 

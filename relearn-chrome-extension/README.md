@@ -23,7 +23,7 @@ Chrome extension (Manifest V3) that reads any webpage with AI and generates summ
 ## Project Structure
 
 ```
-ai-webpage-reader/
+relearn-chrome-extension/
 ├── manifest.json                    # Extension config (MV3)
 ├── assets/icons/                    # 16x16, 48x48, 128x128 PNGs
 └── src/
@@ -63,7 +63,7 @@ No build step required.
 ```
 1. Open chrome://extensions/
 2. Enable Developer mode (toggle, top right)
-3. Click "Load unpacked" → select the ai-webpage-reader/ folder
+3. Click "Load unpacked" → select the relearn-chrome-extension/ folder
 4. Pin the extension from the toolbar puzzle icon
 ```
 
@@ -144,7 +144,7 @@ The extension works fully offline without a backend — backend sync is optional
 
 ```bash
 # Zip extension (exclude dev files)
-zip -r ai-webpage-reader-v1.0.0.zip ai-webpage-reader/ \
+zip -r relearn-chrome-extension-v1.0.0.zip relearn-chrome-extension/ \
   -x "*.git*" "*.DS_Store" "*.idea*"
 ```
 

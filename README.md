@@ -6,29 +6,29 @@ AI-powered learning system that turns any webpage into structured knowledge — 
 
 | Project | Path | Purpose |
 |---------|------|---------|
-| **AI Webpage Reader** | [`ai-webpage-reader/`](ai-webpage-reader/) | Chrome extension — reads pages, generates summaries/Q&A on-device |
-| **Backend** | [`webpage-reader-backend/`](webpage-reader-backend/) | Fastify/TypeScript API — auth, persistence, AI job queue |
-| **Relearn Web** | [`webpage-reader-web/`](webpage-reader-web/) | Next.js 14 app — study sessions, flashcards, quizzes, adaptive memory |
-| **Relearn Mobile** | [`webpage-reader-mobile/`](webpage-reader-mobile/) | Flutter mobile app — auth, summaries, flashcards, quizzes, settings |
+| **AI Webpage Reader** | [`relearn-chrome-extension/`](relearn-chrome-extension/) | Chrome extension — reads pages, generates summaries/Q&A on-device |
+| **Backend** | [`relearn-backend/`](relearn-backend/) | Fastify/TypeScript API — auth, persistence, AI job queue |
+| **Relearn Web** | [`relearn-web/`](relearn-web/) | Next.js 14 app — study sessions, flashcards, quizzes, adaptive memory |
+| **Relearn Mobile** | [`relearn-mobile/`](relearn-mobile/) | Flutter mobile app — auth, summaries, flashcards, quizzes, settings |
 
 ## Architecture
 
 ```
-Chrome Extension (ai-webpage-reader)
+Chrome Extension (relearn-chrome-extension)
   │  Extracts page content
   │  Generates summaries locally (Chrome AI / Ollama / WebLLM)
   │  Syncs saved summaries + quizzes + flashcards to backend
   ▼
-Backend API (webpage-reader-backend) — localhost:3001
+Backend API (relearn-backend) — localhost:3001
   │  Fastify + TypeScript + Prisma + PostgreSQL
   │  BullMQ job queue → Ollama LLM workers
   │  Socket.io realtime events (Redis adapter)
   ▼
-Web App (webpage-reader-web) — localhost:3000
+Web App (relearn-web) — localhost:3000
   │  Next.js 14 (App Router)
   │  Adaptive spaced-repetition study
   ▼
-Mobile App (webpage-reader-mobile)
+Mobile App (relearn-mobile)
      Flutter + Riverpod + go_router
      Summaries, flashcards, quizzes, user settings
 ```
@@ -45,7 +45,7 @@ Mobile App (webpage-reader-mobile)
 ### 1. Start infrastructure
 
 ```bash
-cd webpage-reader-backend/docker
+cd relearn-backend/docker
 docker-compose up -d
 cd ..
 ```
@@ -53,7 +53,7 @@ cd ..
 ### 2. Backend
 
 ```bash
-cd webpage-reader-backend
+cd relearn-backend
 npm install
 cp .env.example .env
 # Edit .env: set JWT_SECRET and JWT_REFRESH_SECRET (openssl rand -base64 32)
@@ -65,7 +65,7 @@ npm run dev
 ### 3. Web app
 
 ```bash
-cd webpage-reader-web
+cd relearn-web
 npm install
 # Create .env.local with NEXT_PUBLIC_API_BASE=http://localhost:3001/api
 npm run dev
@@ -75,7 +75,7 @@ npm run dev
 ### 4. Mobile app
 
 ```bash
-cd webpage-reader-mobile
+cd relearn-mobile
 flutter pub get
 # Android emulator
 flutter run --dart-define=API_BASE_URL=http://10.0.2.2:3001/api
@@ -88,7 +88,7 @@ flutter run --dart-define=API_BASE_URL=http://10.0.2.2:3001/api
 ```
 1. Open chrome://extensions/
 2. Enable Developer mode
-3. Load unpacked → select ai-webpage-reader/
+3. Load unpacked → select relearn-chrome-extension/
 4. Set backend URL to http://localhost:3001 in extension settings
 ```
 
@@ -141,10 +141,10 @@ All entities cascade-delete on parent removal. Users own all their data via JWT-
 
 ```
 webpage-reader-mono/
-├── ai-webpage-reader/      # Chrome extension (vanilla JS, MV3)
-├── webpage-reader-backend/ # Fastify API server (TypeScript)
-├── webpage-reader-web/     # Next.js 14 web app (TypeScript)
-└── webpage-reader-mobile/  # Flutter mobile app
+├── relearn-chrome-extension/      # Chrome extension (vanilla JS, MV3)
+├── relearn-backend/ # Fastify API server (TypeScript)
+├── relearn-web/     # Next.js 14 web app (TypeScript)
+└── relearn-mobile/  # Flutter mobile app
 ```
 
 Each project has its own `package.json`/tooling and can be developed independently.

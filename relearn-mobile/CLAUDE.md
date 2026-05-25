@@ -1,4 +1,4 @@
-# webpage-reader-mobile — Codex Instructions
+# relearn-mobile — Claude Instructions
 
 ## Scope
 
@@ -9,7 +9,7 @@ This folder contains the Flutter mobile app for the monorepo.
 
 ## Commands
 
-Run from `webpage-reader-mobile/`:
+Run from `relearn-mobile/`:
 
 ```bash
 flutter pub get
