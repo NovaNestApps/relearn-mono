@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.json",
+  "ts-node": {
+    "files": true,
+    "transpileOnly": false
+  },
+  "compilerOptions": {
+    "noUnusedLocals": false,
+    "noUnusedParameters": false
+  },
+  "include": ["src/**/*"],
+  "files": ["src/types/fastify.d.ts"]
+}

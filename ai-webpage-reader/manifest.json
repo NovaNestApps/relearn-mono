@@ -1,0 +1,51 @@
+{
+  "manifest_version": 3,
+  "name": "Relearn",
+  "version": "1.0.0",
+  "description": "Read and understand webpages using AI. Powered by Chrome AI, Ollama, or WebLLM.",
+  "icons": {
+    "16": "assets/icons/icon16.png",
+    "48": "assets/icons/icon48.png",
+    "128": "assets/icons/icon128.png"
+  },
+  "permissions": [
+    "activeTab",
+    "tabs",
+    "storage",
+    "scripting",
+    "offscreen",
+    "sidePanel"
+  ],
+  "host_permissions": [
+    "http://localhost:*/*",
+    "http://127.0.0.1:*/*",
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "src/background/background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": [
+        "src/utils/dom-parser.js",
+        "src/ui/notification.js",
+        "src/content/content.js"
+      ],
+      "css": ["src/ui/notification.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "side_panel": {
+    "default_path": "src/popup/popup.html"
+  },
+  "action": {
+    "default_title": "Open Relearn"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["assets/icons/*"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

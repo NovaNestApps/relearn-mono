@@ -1,0 +1,72 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
+import 'auth_controller.dart';
+
+class SignupPage extends ConsumerStatefulWidget {
+  const SignupPage({super.key});
+
+  @override
+  ConsumerState<SignupPage> createState() => _SignupPageState();
+}
+
+class _SignupPageState extends ConsumerState<SignupPage> {
+  final _name = TextEditingController();
+  final _email = TextEditingController();
+  final _password = TextEditingController();
+  bool _loading = false;
+  String? _error;
+
+  Future<void> _submit() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      await ref.read(authControllerProvider.notifier).register(
+            _email.text.trim(),
+            _password.text,
+            _name.text.trim().isEmpty ? null : _name.text.trim(),
+          );
+      if (mounted) context.go('/summaries');
+    } catch (_) {
+      setState(() => _error = 'Signup failed');
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Sign up')),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            TextField(
+                controller: _name,
+                decoration: const InputDecoration(labelText: 'Name')),
+            TextField(
+                controller: _email,
+                decoration: const InputDecoration(labelText: 'Email')),
+            TextField(
+                controller: _password,
+                decoration: const InputDecoration(labelText: 'Password'),
+                obscureText: true),
+            const SizedBox(height: 12),
+            if (_error != null)
+              Text(_error!, style: const TextStyle(color: Colors.red)),
+            FilledButton(
+                onPressed: _loading ? null : _submit,
+                child: const Text('Create account')),
+            TextButton(
+                onPressed: () => context.pop(),
+                child: const Text('Already have an account? Login')),
+          ],
+        ),
+      ),
+    );
+  }
+}

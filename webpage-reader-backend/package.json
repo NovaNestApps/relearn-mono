@@ -1,0 +1,55 @@
+{
+  "name": "webpage-reader-backend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "dev": "nodemon",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:studio": "prisma studio",
+    "prisma:seed": "ts-node src/database/seed.ts",
+    "test": "jest",
+    "lint": "eslint src/**/*.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@fastify/cookie": "^11.0.2",
+    "@fastify/cors": "^11.1.0",
+    "@fastify/jwt": "^10.0.0",
+    "@langchain/core": "^1.0.1",
+    "@langchain/ollama": "^1.0.0",
+    "@prisma/client": "^6.17.1",
+    "@socket.io/redis-adapter": "^8.3.0",
+    "bcrypt": "^6.0.0",
+    "bullmq": "^5.61.0",
+    "dotenv": "^17.2.3",
+    "fastify": "^5.6.1",
+    "ioredis": "^5.8.1",
+    "langchain": "^1.0.1",
+    "ollama": "^0.6.0",
+    "prisma": "^6.17.1",
+    "redis": "^5.8.3",
+    "socket.io": "^4.8.1",
+    "uuid": "^13.0.0",
+    "winston": "^3.18.3",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@types/bcrypt": "^6.0.0",
+    "@types/node": "^24.9.0",
+    "axios": "^1.12.2",
+    "nodemon": "^3.1.10",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
+  }
+}

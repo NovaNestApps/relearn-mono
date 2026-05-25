@@ -1,0 +1,68 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Extension-like look tweaks */
+:root {
+    --bg: #f8f9fa;
+}
+html, body {
+    height: 100%;
+    background: var(--bg);
+}
+.btn-primary {
+    @apply inline-flex items-center justify-center rounded-lg bg-gradient-to-r from-primary to-secondary text-white px-4 py-2 font-semibold hover:opacity-95 transition;
+}
+.btn-secondary {
+    @apply inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white px-4 py-2 font-semibold hover:bg-gray-50 transition;
+}
+.card {
+    @apply bg-white rounded-xl shadow-sm border border-gray-100;
+}
+.input {
+    @apply w-full rounded-lg border-2 border-gray-200 px-3 py-2 outline-none focus:border-primary transition;
+}
+.label {
+    @apply text-sm font-medium text-gray-700;
+}
+/* Markdown (extension-like) */
+.prose-like {
+    color: #111827;
+    line-height: 1.7;
+}
+.prose-like h1, .prose-like h2, .prose-like h3 {
+    font-weight: 700;
+    margin: 1.2em 0 .6em;
+}
+.prose-like p, .prose-like ul, .prose-like ol, .prose-like blockquote {
+    margin: .8em 0;
+}
+.prose-like ul { list-style: disc; padding-left: 1.2rem; }
+.prose-like ol { list-style: decimal; padding-left: 1.2rem; }
+.prose-like blockquote {
+    border-left: 4px solid #e5e7eb;
+    padding: .25rem .75rem;
+    color: #6b7280;
+    background: #fafafa;
+    border-radius: .5rem;
+}
+.prose-like code {
+    background: #f3f4f6;
+    padding: .15rem .35rem;
+    border-radius: .35rem;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: .9em;
+}
+.prose-like pre {
+    background: #0d1117; /* dark code block for contrast */
+    color: #e6edf3;
+    border-radius: .75rem;
+    padding: 1rem;
+    overflow: auto;
+}
+.prose-like pre code {
+    background: transparent;
+    padding: 0;
+}
+.prose-like a { color: #2563eb; text-decoration: underline; }
+.prose-like hr { border: none; border-top: 1px solid #e5e7eb; margin: 1.5rem 0; }

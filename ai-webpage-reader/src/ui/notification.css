@@ -1,0 +1,121 @@
+/**
+ * Notification Styles
+ * Clean, modern, accessible design
+ */
+
+#ai-reader-notification-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 999999;
+  pointer-events: none;
+}
+
+.ai-reader-notification {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 16px 20px;
+  margin-bottom: 12px;
+  min-width: 300px;
+  max-width: 400px;
+  opacity: 0;
+  transform: translateX(400px);
+  transition: all 0.3s ease;
+  pointer-events: all;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.ai-reader-notification.show {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.ai-reader-notification-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ai-reader-notification-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.ai-reader-notification-message {
+  flex: 1;
+  color: #333;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.ai-reader-notification-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #999;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: color 0.2s;
+}
+
+.ai-reader-notification-close:hover {
+  color: #333;
+}
+
+/* Type-specific styles */
+.ai-reader-notification-info {
+  border-left: 4px solid #3b82f6;
+}
+
+.ai-reader-notification-success {
+  border-left: 4px solid #10b981;
+}
+
+.ai-reader-notification-error {
+  border-left: 4px solid #ef4444;
+}
+
+.ai-reader-notification-loading {
+  border-left: 4px solid #f59e0b;
+}
+
+/* Loading animation */
+.ai-reader-notification-loading .ai-reader-notification-icon {
+  animation: ai-reader-spin 1.5s linear infinite;
+}
+
+@keyframes ai-reader-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .ai-reader-notification {
+    background: #1f2937;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+
+  .ai-reader-notification-message {
+    color: #e5e7eb;
+  }
+
+  .ai-reader-notification-close {
+    color: #9ca3af;
+  }
+
+  .ai-reader-notification-close:hover {
+    color: #e5e7eb;
+  }
+}

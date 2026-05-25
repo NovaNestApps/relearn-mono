@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quiz Mode - Relearn</title>
+  <link rel="stylesheet" href="quiz.css">
+</head>
+<body>
+  <div class="quiz-container">
+    <!-- Header -->
+    <header class="quiz-header">
+      <button class="back-btn" id="backBtn">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M19 12H5M12 19l-7-7 7-7"/>
+        </svg>
+      </button>
+      <div class="header-info">
+        <h1 class="quiz-title" id="quizTitle">Loading Quiz...</h1>
+        <p class="quiz-subtitle" id="summaryTitle">Loading...</p>
+      </div>
+    </header>
+
+    <!-- Progress Bar -->
+    <div class="progress-container">
+      <div class="progress-info">
+        <span class="progress-text" id="progressText">Question 1 of 10</span>
+        <span class="progress-score" id="progressScore">Score: 0 / 0</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+    </div>
+
+    <!-- Main Quiz Area -->
+    <main class="quiz-main">
+      <!-- Question Card -->
+      <div class="question-card" id="questionCard">
+        <div class="question-header">
+          <span class="question-number" id="questionNumber">Question 1</span>
+          <span class="question-difficulty" id="questionDifficulty">MEDIUM</span>
+          <span class="question-points" id="questionPoints">2 pts</span>
+        </div>
+
+        <div class="question-text" id="questionText">
+          What is the main topic of this article?
+        </div>
+
+        <!-- Hint Button -->
+        <button class="hint-btn hidden" id="hintBtn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+          </svg>
+          Show Hint
+        </button>
+
+        <!-- Hint Display -->
+        <div class="hint-display hidden" id="hintDisplay">
+          <div class="hint-icon">💡</div>
+          <div class="hint-text" id="hintText"></div>
+        </div>
+
+        <!-- Answer Options (Multiple Choice / True-False) -->
+        <div class="answer-options" id="answerOptions">
+          <!-- Options will be inserted here -->
+        </div>
+
+        <!-- Short Answer Input -->
+        <div class="short-answer hidden" id="shortAnswerSection">
+          <textarea 
+            class="short-answer-input" 
+            id="shortAnswerInput" 
+            placeholder="Type your answer here..."
+            rows="4"
+          ></textarea>
+        </div>
+
+        <!-- Feedback -->
+        <div class="feedback hidden" id="feedback">
+          <div class="feedback-icon" id="feedbackIcon">✓</div>
+          <div class="feedback-content">
+            <div class="feedback-title" id="feedbackTitle">Correct!</div>
+            <div class="feedback-text" id="feedbackText">Explanation will appear here.</div>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="question-actions">
+          <button class="btn-secondary" id="prevQuestionBtn" disabled>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+            Previous
+          </button>
+          <button class="btn-primary" id="submitAnswerBtn" disabled>
+            Submit Answer
+          </button>
+          <button class="btn-primary hidden" id="nextQuestionBtn">
+            Next Question
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </main>
+
+    <!-- Results Screen -->
+    <div class="results-screen hidden" id="resultsScreen">
+      <div class="results-content">
+        <div class="results-icon" id="resultsIcon">🎉</div>
+        <h2 class="results-title" id="resultsTitle">Quiz Complete!</h2>
+        <div class="results-score">
+          <div class="score-circle">
+            <svg width="200" height="200" viewBox="0 0 200 200">
+              <circle cx="100" cy="100" r="90" fill="none" stroke="#e5e7eb" stroke-width="12"/>
+              <circle 
+                id="scoreCircle"
+                cx="100" 
+                cy="100" 
+                r="90" 
+                fill="none" 
+                stroke="#10b981" 
+                stroke-width="12"
+                stroke-linecap="round"
+                stroke-dasharray="565.48"
+                stroke-dashoffset="565.48"
+                transform="rotate(-90 100 100)"
+              />
+            </svg>
+            <div class="score-text">
+              <div class="score-percentage" id="scorePercentage">0%</div>
+              <div class="score-fraction" id="scoreFraction">0 / 0</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="results-stats">
+          <div class="stat-item">
+            <div class="stat-icon">✓</div>
+            <div class="stat-value" id="correctCount">0</div>
+            <div class="stat-label">Correct</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-icon">✗</div>
+            <div class="stat-value" id="incorrectCount">0</div>
+            <div class="stat-label">Incorrect</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-icon">⏱️</div>
+            <div class="stat-value" id="timeSpent">0:00</div>
+            <div class="stat-label">Time</div>
+          </div>
+        </div>
+
+        <div class="results-actions">
+          <button class="btn-secondary" id="reviewAnswersBtn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+              <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+            Review Answers
+          </button>
+          <button class="btn-primary" id="finishQuizBtn">Finish</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Loading State -->
+    <div class="loading-overlay" id="loadingOverlay">
+      <div class="loading-spinner"></div>
+      <p class="loading-text">Loading quiz...</p>
+    </div>
+  </div>
+
+  <script src="storage.js"></script>
+  <script src="quiz.js"></script>
+</body>
+</html>

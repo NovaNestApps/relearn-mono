@@ -1,0 +1,15 @@
+# OS
+.DS_Store
+.DS_Store?
+Thumbs.db
+ehthumbs.db
+
+# Editors
+.vscode/
+*.swp
+*.swo
+*~
+
+# Monorepo scratch
+*.log
+*.tmp
