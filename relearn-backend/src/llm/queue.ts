@@ -157,11 +157,27 @@ quizWorker.on('failed', (job, err) => {
   logger.error(`Quiz job ${job?.id} failed:`, err);
 });
 
+interface RemediationJobData {
+  userId: string;
+  conceptTags: string[];
+}
+
+export const remediationQueue = new Queue<RemediationJobData>('remediation', {
+  connection: redis,
+  defaultJobOptions: {
+    attempts: 3,
+    backoff: { type: 'exponential', delay: 2000 },
+    removeOnComplete: { count: 100 },
+    removeOnFail: { count: 1000 },
+  },
+});
+
 // Graceful shutdown
 export async function closeQueues() {
   await summaryQueue.close();
   await flashcardQueue.close();
   await quizQueue.close();
+  await remediationQueue.close();
   await summaryWorker.close();
   await flashcardWorker.close();
   await quizWorker.close();
