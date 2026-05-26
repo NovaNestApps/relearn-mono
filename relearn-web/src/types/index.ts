@@ -244,3 +244,14 @@ export type PretestSubmitResponse = {
     score: number;
     correct: boolean[];
 };
+
+export type WeakSpot = {
+    tag: string;
+    accuracy: number;
+    reviewCount: number;
+};
+
+export type WeakSpotsResponse = {
+    weakspots: WeakSpot[];
+    lastUpdated: string;
+};

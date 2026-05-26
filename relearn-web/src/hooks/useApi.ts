@@ -23,7 +23,8 @@ import type {
     StudyRoomMode,
     VoiceSession,
     PretestGenerateResponse,
-    PretestSubmitResponse
+    PretestSubmitResponse,
+    WeakSpotsResponse
 } from "@/types";
 
 type ApiListEnvelope<T> = {
@@ -323,4 +324,11 @@ export const PretestApi = {
         (await api.post('/pretest/generate', { url, title, phase })).data,
     submit: async (pretestId: string, answers: string[], phase: 'before' | 'after'): Promise<PretestSubmitResponse> =>
         (await api.post(`/pretest/${pretestId}/submit`, { answers, phase })).data,
+};
+
+export const AnalyticsApi = {
+    getWeakspots: async (): Promise<WeakSpotsResponse> =>
+        (await api.get('/analytics/weakspots')).data as WeakSpotsResponse,
+    requestRemediation: async (conceptTags: string[]): Promise<{ jobId: string }> =>
+        (await api.post('/analytics/remediation', { conceptTags })).data as { jobId: string },
 };
