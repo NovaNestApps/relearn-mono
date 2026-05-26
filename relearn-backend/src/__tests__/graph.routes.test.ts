@@ -65,6 +65,7 @@ describe('GET /graph', () => {
 
 describe('GET /graph/page/:pageId', () => {
   it('returns concepts and relations for a specific page', async () => {
+    (prisma.page.findUnique as jest.Mock).mockResolvedValue({ userId: 'u1' });
     (prisma.pageConcept.findMany as jest.Mock).mockResolvedValue([
       { conceptId: 'c1', concept: mockConcepts[0] },
       { conceptId: 'c2', concept: mockConcepts[1] },
@@ -78,5 +79,37 @@ describe('GET /graph/page/:pageId', () => {
     const body = JSON.parse(res.payload);
     expect(body.nodes).toHaveLength(2);
     expect(body.edges).toHaveLength(1);
+  });
+
+  it('returns 404 when page does not exist', async () => {
+    (prisma.page.findUnique as jest.Mock).mockResolvedValue(null);
+
+    const app = buildTestApp();
+    const res = await app.inject({ method: 'GET', url: '/graph/page/nonexistent' });
+
+    expect(res.statusCode).toBe(404);
+  });
+
+  it('returns 404 when page belongs to another user', async () => {
+    (prisma.page.findUnique as jest.Mock).mockResolvedValue({ userId: 'other-user' });
+
+    const app = buildTestApp();
+    const res = await app.inject({ method: 'GET', url: '/graph/page/page-123' });
+
+    expect(res.statusCode).toBe(404);
+  });
+
+  it('returns empty graph when page has no concepts yet', async () => {
+    (prisma.page.findUnique as jest.Mock).mockResolvedValue({ userId: 'u1' });
+    (prisma.pageConcept.findMany as jest.Mock).mockResolvedValue([]);
+    (prisma.conceptRelation.findMany as jest.Mock).mockResolvedValue([]);
+
+    const app = buildTestApp();
+    const res = await app.inject({ method: 'GET', url: '/graph/page/page-123' });
+
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.payload);
+    expect(body.nodes).toHaveLength(0);
+    expect(body.edges).toHaveLength(0);
   });
 });

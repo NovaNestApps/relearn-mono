@@ -31,6 +31,20 @@ export default async function graphRoutes(app: FastifyInstance) {
     const { pageId } = request.params as { pageId: string };
     const userId = request.user.userId;
 
+    // Verify page exists and belongs to this user before querying concepts
+    const page = await prisma.page.findUnique({
+      where: { id: pageId },
+      select: { userId: true },
+    });
+
+    if (!page) {
+      throw new NotFoundError('Page not found');
+    }
+
+    if (page.userId !== userId) {
+      throw new NotFoundError('Page not found');
+    }
+
     const pageLinks = await prisma.pageConcept.findMany({
       where: { pageId },
       include: {
@@ -40,11 +54,7 @@ export default async function graphRoutes(app: FastifyInstance) {
       },
     });
 
-    // Verify at least one concept belongs to this user (ownership check)
     const concepts = pageLinks.map((pl) => pl.concept);
-    if (concepts.length > 0 && concepts[0].userId !== userId) {
-      throw new NotFoundError('Page not found');
-    }
 
     const conceptIds = concepts.map((c) => c.id);
 

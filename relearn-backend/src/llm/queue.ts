@@ -5,6 +5,8 @@ import { logger } from '../utils/logger';
 import { generateSummary } from './processors/summarizer';
 import { generateFlashcards } from './processors/flashcard-generator';
 import { generateQuiz } from './processors/quiz-generator';
+import { remediationWorker } from './processors/remediation-generator';
+import { conceptWorker } from './processors/concept-extractor';
 
 // Job data types
 interface SummaryJobData {
@@ -199,5 +201,7 @@ export async function closeQueues() {
   await summaryWorker.close();
   await flashcardWorker.close();
   await quizWorker.close();
+  await remediationWorker.close();
+  await conceptWorker.close();
   logger.info('All queues closed');
 }

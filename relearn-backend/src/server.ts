@@ -23,8 +23,7 @@ import teachbackRoutes from './api/routes/teachback.routes';
 import pretestRoutes from './api/routes/pretest.routes';
 import analyticsRoutes from './api/routes/analytics.routes';
 import graphRoutes from './api/routes/graph.routes';
-import './llm/processors/remediation-generator';
-import './llm/processors/concept-extractor';
+// Workers (remediationWorker, conceptWorker) are initialized via queue.ts imports
 
 const server = Fastify({
   logger: true,

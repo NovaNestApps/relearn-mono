@@ -2,6 +2,7 @@ import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { prisma } from '../../config/database';
 import { authMiddleware } from '../../auth/middleware';
+import { NotFoundError, ForbiddenError } from '../../utils/errors';
 
 const sessionQuerySchema = z.object({
   cardCount: z.coerce.number().int().min(1).max(50).default(20),
@@ -72,14 +73,40 @@ export default async function studySessionRoutes(app: FastifyInstance) {
     const body = completeSchema.parse(request.body);
     const userId = request.user.userId;
 
+    // Verify session exists and belongs to this user
+    const session = await prisma.studySession.findUnique({
+      where: { id },
+      select: { userId: true },
+    });
+
+    if (!session) {
+      throw new NotFoundError('Study session not found');
+    }
+
+    if (session.userId !== userId) {
+      throw new ForbiddenError('You do not have access to this session');
+    }
+
+    // Verify all submitted flashcard IDs belong to this user
+    let verifiedResults = body.results;
+    if (body.results.length > 0) {
+      const flashcardIds = body.results.map(r => r.flashcardId);
+      const ownedCards = await prisma.flashcard.findMany({
+        where: { id: { in: flashcardIds }, userId },
+        select: { id: true },
+      });
+      const ownedIds = new Set(ownedCards.map(c => c.id));
+      verifiedResults = body.results.filter(r => ownedIds.has(r.flashcardId));
+    }
+
     await prisma.studySession.update({
       where: { id },
       data: { results: body.results, completedAt: new Date() },
     });
 
-    if (body.results.length > 0) {
+    if (verifiedResults.length > 0) {
       await prisma.flashcardReview.createMany({
-        data: body.results.map(r => ({
+        data: verifiedResults.map(r => ({
           userId,
           flashcardId: r.flashcardId,
           correct: r.correct,
@@ -89,6 +116,6 @@ export default async function studySessionRoutes(app: FastifyInstance) {
       });
     }
 
-    return reply.send({ ok: true, reviewed: body.results.length });
+    return reply.send({ ok: true, reviewed: verifiedResults.length });
   });
 }
