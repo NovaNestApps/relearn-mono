@@ -44,7 +44,7 @@ export default async function flashcardRoutes(app: FastifyInstance) {
     }
 
     const { flashcardQueue } = await import('../../llm/queue');
-    await flashcardQueue.add('generate-flashcards', {
+    const job = await flashcardQueue.add('generate-flashcards', {
       pageId: body.pageId,
       userId,
       pageContent: page.content,
@@ -54,6 +54,7 @@ export default async function flashcardRoutes(app: FastifyInstance) {
     return reply.status(202).send({
       message: 'Flashcard generation started',
       pageId: body.pageId,
+      jobId: job.id,
       expectedCount: body.count,
     });
   });
@@ -86,6 +87,22 @@ export default async function flashcardRoutes(app: FastifyInstance) {
   app.get('/page/:pageId', async (request, reply) => {
     const { pageId } = request.params as { pageId: string };
     const userId = request.user.userId;
+
+    const flashcards = await prisma.flashcard.findMany({
+      where: { pageId, userId },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return reply.send({ flashcards, data: flashcards });
+  });
+
+  app.get('/', async (request, reply) => {
+    const { pageId } = request.query as { pageId?: string };
+    const userId = request.user.userId;
+
+    if (!pageId) {
+      throw new ValidationError('pageId is required');
+    }
 
     const flashcards = await prisma.flashcard.findMany({
       where: { pageId, userId },

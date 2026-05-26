@@ -19,6 +19,85 @@ import type {
     VoiceSession
 } from "@/types";
 
+type ApiListEnvelope<T> = {
+    data?: T[];
+} & Record<string, unknown>;
+
+type ApiItemEnvelope<T> = Record<string, unknown> & {
+    jobId?: string;
+    message?: string;
+};
+
+type BackendQuizQuestion = {
+    id: string;
+    question: string;
+    options?: unknown;
+    correctAnswer?: string | number | boolean;
+    answer?: string | number | boolean;
+    explanation?: string;
+    points?: number;
+    difficulty?: "EASY" | "MEDIUM" | "HARD";
+    type?: "mcq" | "boolean" | "short";
+};
+
+type BackendQuiz = Omit<Quiz, "questions"> & {
+    questions?: BackendQuizQuestion[];
+};
+
+export type GenerationResponse<T> = {
+    item?: T;
+    jobId?: string;
+    message?: string;
+};
+
+function unwrapList<T>(data: unknown, key: string): T[] {
+    if (Array.isArray(data)) return data as T[];
+    if (data && typeof data === "object") {
+        const envelope = data as ApiListEnvelope<T>;
+        const keyed = envelope[key];
+        if (Array.isArray(keyed)) return keyed as T[];
+        if (Array.isArray(envelope.data)) return envelope.data;
+    }
+    return [];
+}
+
+function unwrapItem<T>(data: unknown, key: string): T {
+    if (data && typeof data === "object" && key in data) {
+        return (data as ApiItemEnvelope<T>)[key] as T;
+    }
+    return data as T;
+}
+
+function normalizeOptions(options: unknown): string[] {
+    return Array.isArray(options) ? options.map(String) : [];
+}
+
+function normalizeAnswer(question: BackendQuizQuestion): string | boolean | number | undefined {
+    const answer = question.answer ?? question.correctAnswer;
+    const options = normalizeOptions(question.options);
+    if (typeof answer === "string" && /^\d+$/.test(answer)) {
+        const index = Number(answer);
+        return options[index] ?? options[index - 1] ?? answer;
+    }
+    return answer;
+}
+
+function normalizeQuiz(raw: BackendQuiz): Quiz {
+    return {
+        ...raw,
+        questions: (raw.questions ?? []).map((question) => ({
+            id: question.id,
+            type: question.type ?? "mcq",
+            question: question.question,
+            options: normalizeOptions(question.options),
+            answer: normalizeAnswer(question),
+            explanation: question.explanation,
+            points: question.points,
+            difficulty: question.difficulty
+        }))
+    };
+}
+
 function normalizeClaimsResponse(data: unknown): ClaimCitation[] {
     if (Array.isArray(data)) return data as ClaimCitation[];
     if (data && typeof data === "object" && Array.isArray((data as { claims?: ClaimCitation[] }).claims)) {
@@ -46,16 +125,27 @@ export type RecordStudyEventPayload = {
 export const PagesApi = {
     list: async (): Promise<PageItem[]> => (await api.get("/pages")).data.pages,
     create: async (payload: { title: string; url: string; content?: string }): Promise<PageItem> =>
-        (await api.post("/pages", payload)).data.page,
+        (await api.post("/pages", { ...payload, content: payload.content || " " })).data.page,
     remove: async (id: string) => (await api.delete(`/pages/${id}`)).data
 };
 
 export const SummariesApi = {
-    listByPage: async (pageId: string): Promise<Summary[]> =>
-        (await api.get(`/summaries?pageId=${pageId}`)).data,
-    get: async (id: string): Promise<Summary> => (await api.get(`/summaries/${id}`)).data,
-    generate: async (pageId: string, options?: any): Promise<Summary> =>
-        (await api.post(`/summaries`, { pageId, ...options })).data,
+    listByPage: async (pageId: string): Promise<Summary[]> => {
+        const { data } = await api.get(`/summaries/page/${pageId}`);
+        return unwrapList<Summary>(data, "summaries");
+    },
+    get: async (id: string): Promise<Summary> => {
+        const { data } = await api.get(`/summaries/${id}`);
+        return unwrapItem<Summary>(data, "summary");
+    },
+    generate: async (pageId: string, options?: { type?: "default" | "brief" | "detailed" }): Promise<GenerationResponse<Summary>> => {
+        const { data } = await api.post(`/summaries`, { pageId, type: options?.type ?? "default" });
+        return {
+            item: unwrapItem<Summary>(data, "summary"),
+            jobId: data?.jobId,
+            message: data?.message
+        };
+    },
     remove: async (id: string) => (await api.delete(`/summaries/${id}`)).data,
     getClaims: async (summaryId: string): Promise<ClaimCitation[]> => {
         const { data } = await api.get(`/summaries/${summaryId}/claims`);
@@ -79,18 +169,46 @@ export const SummariesApi = {
 };
 
 export const FlashcardsApi = {
-    listByPage: async (pageId: string): Promise<Flashcard[]> =>
-        (await api.get(`/flashcards?pageId=${pageId}`)).data,
-    generate: async (pageId: string, opts?: any): Promise<{ count: number }> =>
-        (await api.post(`/flashcards/generate`, { pageId, ...opts })).data
+    listByPage: async (pageId: string): Promise<Flashcard[]> => {
+        const { data } = await api.get(`/flashcards/page/${pageId}`);
+        return unwrapList<Flashcard>(data, "flashcards");
+    },
+    generate: async (pageId: string, opts?: { count?: number }): Promise<GenerationResponse<never>> => {
+        const { data } = await api.post(`/flashcards/generate`, { pageId, ...opts });
+        return {
+            jobId: data?.jobId,
+            message: data?.message
+        };
+    }
 };
 
 export const QuizzesApi = {
-    listByPage: async (pageId: string): Promise<Quiz[]> =>
-        (await api.get(`/quizzes?pageId=${pageId}`)).data,
-    get: async (id: string): Promise<Quiz> => (await api.get(`/quizzes/${id}`)).data,
-    generate: async (pageId: string, opts?: any): Promise<Quiz> =>
-        (await api.post(`/quizzes/generate`, { pageId, ...opts })).data
+    listByPage: async (pageId: string): Promise<Quiz[]> => {
+        const { data } = await api.get(`/quizzes?pageId=${pageId}`);
+        return unwrapList<BackendQuiz>(data, "quizzes").map(normalizeQuiz);
+    },
+    get: async (id: string): Promise<Quiz> => {
+        const { data } = await api.get(`/quizzes/${id}`);
+        return normalizeQuiz(unwrapItem<BackendQuiz>(data, "quiz"));
+    },
+    generate: async (pageId: string, opts?: { questionCount?: number; difficulty?: "EASY" | "MEDIUM" | "HARD"; title?: string }): Promise<GenerationResponse<Quiz>> => {
+        const { data } = await api.post(`/quizzes/generate`, { pageId, ...opts });
+        return {
+            item: data?.quiz ? normalizeQuiz(data.quiz) : undefined,
+            jobId: data?.jobId,
+            message: data?.message
+        };
+    },
+    jobStatus: async (jobId: string): Promise<GenerationResponse<Quiz> & { state?: string; progress?: number }> => {
+        const { data } = await api.get(`/quizzes/job/${jobId}`);
+        return {
+            item: data?.quiz ? normalizeQuiz(data.quiz) : undefined,
+            jobId: data?.jobId,
+            message: data?.message,
+            state: data?.state,
+            progress: data?.progress
+        };
+    }
 };
 
 export const StudyApi = {

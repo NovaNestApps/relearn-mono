@@ -16,3 +16,6 @@ ehthumbs.db
 
 # Git worktrees
 .worktrees/
+
+# Local-only design docs
+docs/superpowers/

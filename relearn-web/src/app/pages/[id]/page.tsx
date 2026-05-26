@@ -5,9 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import {
     FlashcardsApi,
     QuizzesApi,
-    SummariesApi,
-    StudyApi,
-    ConceptMapApi
+    SummariesApi
 } from "@/hooks/useApi";
 import type { ClaimCitation, ConceptMap, Flashcard, Quiz, Summary } from "@/types";
 import Markdown from "@/components/features/Markdown";
@@ -27,7 +25,6 @@ export default function PageDetails({ params }: { params: { id: string } }) {
     const [err, setErr] = useState<string | null>(null);
     const [genBusy, setGenBusy] = useState(false);
     const [verifyBusy, setVerifyBusy] = useState(false);
-    const [memoryBusy, setMemoryBusy] = useState(false);
     const [lastVerifiedAt, setLastVerifiedAt] = useState<string | null>(null);
 
     const latest = useMemo(() => summaries[0], [summaries]);
@@ -55,30 +52,7 @@ export default function PageDetails({ params }: { params: { id: string } }) {
                 setSummaries(s);
                 setFlashcards(f);
                 setQuizzes(q);
-
-                if (featureFlags.adaptiveMemory) {
-                    try {
-                        const queue = await StudyApi.getQueue(pageId);
-                        if (!cancelled) {
-                            setQueueCounts({
-                                dueNow: queue.dueNow.length,
-                                newItems: queue.newItems.length,
-                                overdue: queue.overdue.length
-                            });
-                        }
-                    } catch {
-                        if (!cancelled) setQueueCounts({ dueNow: 0, newItems: 0, overdue: 0 });
-                    }
-                }
-
-                if (featureFlags.conceptMap) {
-                    try {
-                        const map = await ConceptMapApi.get(pageId);
-                        if (!cancelled) setConceptMap(map);
-                    } catch {
-                        if (!cancelled) setConceptMap(null);
-                    }
-                }
+                setQueueCounts({ dueNow: 0, newItems: f.length, overdue: 0 });
 
                 if (featureFlags.sourceVerification && s[0]) {
                     try {
@@ -103,13 +77,18 @@ export default function PageDetails({ params }: { params: { id: string } }) {
 
     const generateSummary = async () => {
         setGenBusy(true);
+        setErr(null);
         try {
-            const summary = await SummariesApi.generate(pageId, { mode: "standard" });
-            setSummaries((curr) => [summary, ...curr]);
+            const result = await SummariesApi.generate(pageId, { type: "default" });
+            if (result.item) {
+                setSummaries((curr) => [result.item as Summary, ...curr.filter((item) => item.id !== result.item?.id)]);
+            }
             if (featureFlags.sourceVerification) {
                 try {
-                    const currentClaims = await SummariesApi.getClaims(summary.id);
-                    setClaims(currentClaims);
+                    if (result.item?.id) {
+                        const currentClaims = await SummariesApi.getClaims(result.item.id);
+                        setClaims(currentClaims);
+                    }
                 } catch {
                     setClaims([]);
                 }
@@ -132,10 +111,16 @@ export default function PageDetails({ params }: { params: { id: string } }) {
 
     const generateFlashcards = async () => {
         setGenBusy(true);
+        setErr(null);
         try {
             await FlashcardsApi.generate(pageId, { count: 15 });
-            const next = await FlashcardsApi.listByPage(pageId);
+            let next = await FlashcardsApi.listByPage(pageId);
+            for (let attempt = 0; attempt < 4 && next.length === flashcards.length; attempt += 1) {
+                await new Promise((resolve) => setTimeout(resolve, 1500));
+                next = await FlashcardsApi.listByPage(pageId);
+            }
             setFlashcards(next);
+            setQueueCounts({ dueNow: 0, newItems: next.length, overdue: 0 });
         } catch (e: any) {
             setErr(e?.response?.data?.message || "Failed to generate flashcards");
         } finally {
@@ -145,9 +130,26 @@ export default function PageDetails({ params }: { params: { id: string } }) {
 
     const generateQuiz = async () => {
         setGenBusy(true);
+        setErr(null);
         try {
-            const quiz = await QuizzesApi.generate(pageId, { difficulty: "MEDIUM" });
-            setQuizzes((curr) => [quiz, ...curr]);
+            const result = await QuizzesApi.generate(pageId, { difficulty: "MEDIUM", questionCount: 10 });
+            if (result.item) {
+                setQuizzes((curr) => [result.item as Quiz, ...curr.filter((item) => item.id !== result.item?.id)]);
+                return;
+            }
+            if (result.jobId) {
+                for (let attempt = 0; attempt < 8; attempt += 1) {
+                    await new Promise((resolve) => setTimeout(resolve, 1500));
+                    const status = await QuizzesApi.jobStatus(result.jobId);
+                    if (status.item) {
+                        setQuizzes((curr) => [status.item as Quiz, ...curr.filter((item) => item.id !== status.item?.id)]);
+                        return;
+                    }
+                    if (status.state === "failed") break;
+                }
+            }
+            const next = await QuizzesApi.listByPage(pageId);
+            setQuizzes(next);
         } catch (e: any) {
             setErr(e?.response?.data?.message || "Failed to generate quiz");
         } finally {
@@ -167,23 +169,6 @@ export default function PageDetails({ params }: { params: { id: string } }) {
             setErr(e?.response?.data?.message || "Failed to verify summary claims");
         } finally {
             setVerifyBusy(false);
-        }
-    };
-
-    const recomputeMemory = async () => {
-        setMemoryBusy(true);
-        try {
-            await StudyApi.recomputeMemory(pageId);
-            const queue = await StudyApi.getQueue(pageId);
-            setQueueCounts({
-                dueNow: queue.dueNow.length,
-                newItems: queue.newItems.length,
-                overdue: queue.overdue.length
-            });
-        } catch (e: any) {
-            setErr(e?.response?.data?.message || "Failed to recompute memory schedule");
-        } finally {
-            setMemoryBusy(false);
         }
     };
 
@@ -368,10 +353,7 @@ export default function PageDetails({ params }: { params: { id: string } }) {
             {featureFlags.adaptiveMemory && (
                 <section className="card p-5">
                     <div className="flex items-center justify-between gap-3 flex-wrap">
-                        <h3 className="font-semibold">Adaptive Memory Queue</h3>
-                        <button className="btn-secondary" onClick={recomputeMemory} disabled={memoryBusy}>
-                            {memoryBusy ? "Recomputing..." : "Recompute Schedule"}
-                        </button>
+                        <h3 className="font-semibold">Study Queue</h3>
                     </div>
                     <div className="grid md:grid-cols-3 gap-3 mt-3">
                         <div className="border rounded-lg p-3">

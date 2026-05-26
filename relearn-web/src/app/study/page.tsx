@@ -3,14 +3,13 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
-import { FlashcardsApi, StudyApi } from "@/hooks/useApi";
-import type { Flashcard, MemoryState, QueueBucket, StudyQueueResponse } from "@/types";
+import { FlashcardsApi } from "@/hooks/useApi";
+import type { Flashcard, MemoryState, QueueBucket } from "@/types";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import clsx from "classnames";
 import { routes } from "@/lib/routes";
 import { buildFlashcardQueue, loadMemoryStates, saveMemoryStates, updateMemoryState } from "@/lib/memory";
-import { featureFlags } from "@/lib/feature-flags";
 
 const BUCKET_LABEL: Record<QueueBucket, string> = {
     OVERDUE: "Overdue",
@@ -36,7 +35,6 @@ function StudyPageContent() {
     const pageId = params.get("pageId");
 
     const [cards, setCards] = useState<Flashcard[]>([]);
-    const [queue, setQueue] = useState<StudyQueueResponse | null>(null);
     const [memoryStates, setMemoryStates] = useState<Record<string, MemoryState>>({});
     const [selectedBucket, setSelectedBucket] = useState<QueueBucket>("DUE_NOW");
     const [idx, setIdx] = useState(0);
@@ -45,7 +43,6 @@ function StudyPageContent() {
     const [dontKnow, setDontKnow] = useState<number>(0);
     const [done, setDone] = useState(false);
     const [pendingOutcome, setPendingOutcome] = useState<Outcome | null>(null);
-    const [cardStartedAt, setCardStartedAt] = useState(Date.now());
     const [err, setErr] = useState<string | null>(null);
     const [syncing, setSyncing] = useState(false);
 
@@ -66,15 +63,6 @@ function StudyPageContent() {
                 if (cancelled) return;
                 setCards(pageCards);
                 setMemoryStates(loadMemoryStates(pageId));
-
-                if (featureFlags.adaptiveMemory) {
-                    try {
-                        const backendQueue = await StudyApi.getQueue(pageId);
-                        if (!cancelled) setQueue(backendQueue);
-                    } catch {
-                        if (!cancelled) setQueue(null);
-                    }
-                }
             } catch (e: any) {
                 if (!cancelled) setErr(e?.response?.data?.message || "Failed to load study cards");
             }
@@ -86,42 +74,9 @@ function StudyPageContent() {
         };
     }, [ready, user, pageId]);
 
-    const cardsById = useMemo(() => {
-        const map: Record<string, Flashcard> = {};
-        for (const card of cards) map[card.id] = card;
-        return map;
-    }, [cards]);
-
-    const queueFromBackend = useMemo(() => {
-        if (!queue) return null;
-
-        const fromIds = (ids: string[]) => ids
-            .map((id) => cardsById[id])
-            .filter((card): card is Flashcard => Boolean(card));
-
-        const overdueIds = queue.overdue
-            .filter((item) => item.itemType === "flashcard")
-            .map((item) => item.itemId);
-        const dueNowIds = queue.dueNow
-            .filter((item) => item.itemType === "flashcard")
-            .map((item) => item.itemId);
-        const newIds = queue.newItems
-            .filter((item) => item.itemType === "flashcard")
-            .map((item) => item.itemId);
-
-        return {
-            OVERDUE: fromIds(overdueIds),
-            DUE_NOW: fromIds(dueNowIds),
-            NEW: fromIds(newIds)
-        } as Record<QueueBucket, Flashcard[]>;
-    }, [queue, cardsById]);
-
     const queueByBucket = useMemo(() => {
-        if (queueFromBackend && (queueFromBackend.OVERDUE.length || queueFromBackend.DUE_NOW.length || queueFromBackend.NEW.length)) {
-            return queueFromBackend;
-        }
         return buildFlashcardQueue(cards, memoryStates);
-    }, [queueFromBackend, cards, memoryStates]);
+    }, [cards, memoryStates]);
 
     const bucketCounts = useMemo(() => ({
         OVERDUE: queueByBucket.OVERDUE.length,
@@ -158,20 +113,16 @@ function StudyPageContent() {
     const reviewed = know + dontKnow;
     const progress = total ? (reviewed / total) * 100 : 0;
 
-    useEffect(() => {
-        setCardStartedAt(Date.now());
-    }, [current?.id, selectedBucket]);
-
     const flip = () => setFlipped((f) => !f);
 
     const refreshQueue = async () => {
-        if (!pageId || !featureFlags.adaptiveMemory) return;
+        if (!pageId) return;
         setSyncing(true);
         try {
-            const backendQueue = await StudyApi.getQueue(pageId);
-            setQueue(backendQueue);
+            const pageCards = await FlashcardsApi.listByPage(pageId);
+            setCards(pageCards);
         } catch {
-            // local fallback already active
+            // local memory state remains usable when a refresh fails
         } finally {
             setSyncing(false);
         }
@@ -180,25 +131,10 @@ function StudyPageContent() {
     const submitReview = async (confidence: number) => {
         if (!current || !pageId || !user || !pendingOutcome) return;
 
-        const latencyMs = Math.max(0, Date.now() - cardStartedAt);
         const nextState = updateMemoryState(memoryStates[current.id], current.id, pendingOutcome, confidence);
         const nextStates = { ...memoryStates, [current.id]: nextState };
         setMemoryStates(nextStates);
         saveMemoryStates(pageId, nextStates);
-
-        try {
-            await StudyApi.recordEvent({
-                userId: user.id,
-                pageId,
-                itemType: "flashcard",
-                itemId: current.id,
-                outcome: pendingOutcome,
-                confidence,
-                latencyMs
-            });
-        } catch {
-            // keep local progress even when backend event ingestion is unavailable
-        }
 
         if (pendingOutcome === "know") setKnow((x) => x + 1);
         else setDontKnow((x) => x + 1);
@@ -228,7 +164,15 @@ function StudyPageContent() {
     };
 
     if (!ready) return <div>Loading...</div>;
-    if (!pageId) return <div className="text-red-600">Missing pageId</div>;
+    if (!pageId) {
+        return (
+            <Card className="grid gap-3">
+                <h2 className="text-xl font-bold">No page selected</h2>
+                <p className="text-gray-600">Open study from a saved page to review its flashcards.</p>
+                <a className="btn-secondary w-fit" href={routes.pages}>Back to Pages</a>
+            </Card>
+        );
+    }
 
     if (done) {
         return (
@@ -303,11 +247,9 @@ function StudyPageContent() {
                             </button>
                         ))}
                     </div>
-                    {featureFlags.adaptiveMemory && (
-                        <button className="btn-secondary text-sm" onClick={refreshQueue} disabled={syncing}>
-                            {syncing ? "Syncing..." : "Refresh Queue"}
-                        </button>
-                    )}
+                    <button className="btn-secondary text-sm" onClick={refreshQueue} disabled={syncing}>
+                        {syncing ? "Refreshing..." : "Refresh Cards"}
+                    </button>
                 </div>
 
                 <div>

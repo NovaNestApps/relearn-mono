@@ -6,6 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { StudyApi, VoiceApi } from "@/hooks/useApi";
 import { Card } from "@/components/ui/card";
 import { routes } from "@/lib/routes";
+import { featureFlags } from "@/lib/feature-flags";
 
 export default function VoicePage() {
     return (
@@ -38,7 +39,24 @@ function VoicePageContent() {
     }
 
     if (!ready) return <div>Loading...</div>;
-    if (!pageId) return <div className="text-red-600">Missing pageId</div>;
+    if (!featureFlags.voiceStudy) {
+        return (
+            <Card className="grid gap-3">
+                <h2 className="text-xl font-bold">Voice study unavailable</h2>
+                <p className="text-gray-600">This feature is disabled until backend support is available.</p>
+                <a className="btn-secondary w-fit" href={routes.pages}>Back to Pages</a>
+            </Card>
+        );
+    }
+    if (!pageId) {
+        return (
+            <Card className="grid gap-3">
+                <h2 className="text-xl font-bold">No page selected</h2>
+                <p className="text-gray-600">Open voice study from a saved page.</p>
+                <a className="btn-secondary w-fit" href={routes.pages}>Back to Pages</a>
+            </Card>
+        );
+    }
 
     const createSession = async () => {
         setCreating(true);

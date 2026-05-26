@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
-import { QuizzesApi, StudyApi } from "@/hooks/useApi";
+import { QuizzesApi } from "@/hooks/useApi";
 import type { Quiz, QuizQuestion } from "@/types";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -27,11 +27,11 @@ function QuizPageContent() {
     const quizId = params.get("id");
 
     const [quiz, setQuiz] = useState<Quiz | null>(null);
+    const [loadingQuiz, setLoadingQuiz] = useState(false);
+    const [loadError, setLoadError] = useState<string | null>(null);
     const [idx, setIdx] = useState(0);
     const [answers, setAnswers] = useState<AnswerMap>({});
     const [confidence, setConfidence] = useState<ConfidenceMap>({});
-    const [questionSeenAt, setQuestionSeenAt] = useState<Record<string, number>>({});
-    const [quizStartedAt, setQuizStartedAt] = useState(Date.now());
     const [submitted, setSubmitted] = useState(false);
     const [submitting, setSubmitting] = useState(false);
 
@@ -42,26 +42,22 @@ function QuizPageContent() {
             return;
         }
         if (!quizId) return;
+        setLoadingQuiz(true);
+        setLoadError(null);
         QuizzesApi.get(quizId)
             .then((nextQuiz) => {
                 setQuiz(nextQuiz);
-                setQuizStartedAt(Date.now());
-                setQuestionSeenAt({});
             })
-            .catch(() => setQuiz(null));
+            .catch(() => {
+                setQuiz(null);
+                setLoadError("Quiz not found");
+            })
+            .finally(() => setLoadingQuiz(false));
     }, [ready, user, quizId]);
 
     const current = useMemo(() => quiz?.questions[idx], [quiz, idx]);
     const total = quiz?.questions.length ?? 0;
     const progress = total ? ((idx + 1) / total) * 100 : 0;
-
-    useEffect(() => {
-        if (!current) return;
-        setQuestionSeenAt((seen) => {
-            if (seen[current.id]) return seen;
-            return { ...seen, [current.id]: Date.now() };
-        });
-    }, [current]);
 
     const selectAnswer = (question: QuizQuestion, value: string | boolean | number) => {
         setAnswers((state) => ({ ...state, [question.id]: value }));
@@ -71,39 +67,9 @@ function QuizPageContent() {
     const prev = () => setIdx((i) => Math.max(i - 1, 0));
 
     const submit = async () => {
-        if (!quiz || !user || !quizId) return;
+        if (!quiz || !quizId) return;
 
         setSubmitting(true);
-        const now = Date.now();
-
-        const events = quiz.questions.map((question) => {
-            const given = answers[question.id];
-            const isAnswered = given !== undefined && given !== "";
-
-            const isCorrect =
-                (question.type === "mcq" && given === question.answer) ||
-                (question.type === "boolean" && given === question.answer) ||
-                (question.type === "short" && typeof given === "string" && typeof question.answer === "string" &&
-                    given.trim().toLowerCase() === question.answer.trim().toLowerCase());
-
-            const outcome = !isAnswered
-                ? "skipped"
-                : isCorrect
-                    ? "correct"
-                    : "incorrect";
-
-            return StudyApi.recordEvent({
-                userId: user.id,
-                pageId: quiz.pageId,
-                itemType: "quiz_question",
-                itemId: question.id,
-                outcome,
-                confidence: confidence[question.id] ?? 3,
-                latencyMs: Math.max(0, now - (questionSeenAt[question.id] ?? quizStartedAt))
-            });
-        });
-
-        await Promise.allSettled(events);
         setSubmitted(true);
         setSubmitting(false);
     };
@@ -127,7 +93,26 @@ function QuizPageContent() {
         return result;
     }, [quiz, answers, submitted]);
 
-    if (!ready || !quiz) return <div>Loading...</div>;
+    if (!ready) return <div>Loading...</div>;
+    if (!quizId) {
+        return (
+            <Card className="grid gap-3">
+                <h2 className="text-xl font-bold">No quiz selected</h2>
+                <p className="text-gray-600">Open a quiz from a saved page to start an attempt.</p>
+                <a className="btn-secondary w-fit" href={routes.pages}>Back to Pages</a>
+            </Card>
+        );
+    }
+    if (loadingQuiz) return <div>Loading...</div>;
+    if (!quiz) {
+        return (
+            <Card className="grid gap-3">
+                <h2 className="text-xl font-bold">{loadError ?? "Quiz unavailable"}</h2>
+                <p className="text-gray-600">The quiz could not be loaded.</p>
+                <a className="btn-secondary w-fit" href={routes.pages}>Back to Pages</a>
+            </Card>
+        );
+    }
 
     if (submitted) {
         const max = quiz.questions.reduce((acc, question) => acc + (question.points ?? 1), 0);
