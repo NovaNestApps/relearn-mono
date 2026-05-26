@@ -23,4 +23,6 @@ class ApiEndpoints {
 
   static const studySession = '/study/session';
   static String studySessionComplete(String id) => '/study/session/$id/complete';
+
+  static String teachback(String pageId) => '/pages/$pageId/teachback';
 }

@@ -16,6 +16,8 @@ import type {
     MemoryState,
     TeachBackEvaluationResult,
     TeachBackAttempt,
+    TeachBackResult,
+    TeachBackAttemptSummary,
     ConceptMap,
     StudyRoom,
     StudyRoomMode,
@@ -272,7 +274,17 @@ export const TeachBackApi = {
             createdAt: new Date().toISOString()
         };
         return { attempt: fallbackAttempt, repairFlashcards: [] };
-    }
+    },
+
+    submit: async (pageId: string, attemptText: string): Promise<TeachBackResult> => {
+        const res = await api.post(`/pages/${pageId}/teachback`, { attemptText });
+        return res.data as TeachBackResult;
+    },
+
+    getHistory: async (pageId: string): Promise<TeachBackAttemptSummary[]> => {
+        const res = await api.get(`/pages/${pageId}/teachback`);
+        return (res.data as { attempts: TeachBackAttemptSummary[] }).attempts;
+    },
 };
 
 export const ConceptMapApi = {
