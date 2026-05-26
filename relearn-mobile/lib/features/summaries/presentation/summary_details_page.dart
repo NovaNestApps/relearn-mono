@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../models/models.dart';
+import '../../pretest/data/pretest_repository.dart';
+import '../../pretest/presentation/pretest_bottom_sheet.dart';
 import 'summaries_page.dart';
 
 final summaryProvider = FutureProvider.family<Summary, String>((ref, id) async {
@@ -37,17 +39,20 @@ class SummaryDetailsPage extends ConsumerWidget {
                       children: [
                         Text(
                           summary.page?.title ?? 'Untitled',
-                          style:
-                              Theme.of(context).textTheme.titleLarge?.copyWith(
-                                    fontWeight: FontWeight.w700,
-                                    color: const Color(0xFF101828),
-                                  ),
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(
+                                fontWeight: FontWeight.w700,
+                                color: const Color(0xFF101828),
+                              ),
                         ),
                         const SizedBox(height: 8),
                         Row(
                           children: [
-                            const Icon(Icons.language_rounded,
-                                size: 14, color: Color(0xFF98A2B3)),
+                            const Icon(
+                              Icons.language_rounded,
+                              size: 14,
+                              color: Color(0xFF98A2B3),
+                            ),
                             const SizedBox(width: 6),
                             Expanded(
                               child: Text(
@@ -55,7 +60,9 @@ class SummaryDetailsPage extends ConsumerWidget {
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
-                                    color: Color(0xFF667085), fontSize: 12),
+                                  color: Color(0xFF667085),
+                                  fontSize: 12,
+                                ),
                               ),
                             ),
                           ],
@@ -66,11 +73,13 @@ class SummaryDetailsPage extends ConsumerWidget {
                           runSpacing: 8,
                           children: [
                             _InfoChip(
-                                icon: Icons.auto_awesome_rounded,
-                                label: 'Type: ${summary.type}'),
+                              icon: Icons.auto_awesome_rounded,
+                              label: 'Type: ${summary.type}',
+                            ),
                             _InfoChip(
-                                icon: Icons.calendar_today_rounded,
-                                label: createdText),
+                              icon: Icons.calendar_today_rounded,
+                              label: createdText,
+                            ),
                           ],
                         ),
                       ],
@@ -115,6 +124,19 @@ class SummaryDetailsPage extends ConsumerWidget {
                       ),
                     ),
                   ],
+                ),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  onPressed: summary.page?.url != null
+                      ? () => PretestBottomSheet.show(
+                          context,
+                          repository: ref.read(pretestRepositoryProvider),
+                          pageUrl: summary.page!.url!,
+                          pageTitle: summary.page?.title ?? 'Untitled',
+                        )
+                      : null,
+                  icon: const Icon(Icons.quiz_outlined),
+                  label: const Text('Pre-read Quiz'),
                 ),
               ],
             ),

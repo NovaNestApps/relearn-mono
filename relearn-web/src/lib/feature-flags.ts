@@ -14,5 +14,6 @@ export const featureFlags = {
     copilot: toBool(process.env.NEXT_PUBLIC_FEATURE_COPILOT, true),
     incrementalReading: toBool(process.env.NEXT_PUBLIC_FEATURE_INCREMENTAL_READING, false),
     voiceStudy: toBool(process.env.NEXT_PUBLIC_FEATURE_VOICE_STUDY, false),
-    studyRooms: toBool(process.env.NEXT_PUBLIC_FEATURE_STUDY_ROOMS, false)
+    studyRooms: toBool(process.env.NEXT_PUBLIC_FEATURE_STUDY_ROOMS, false),
+    pretesting: toBool(process.env.NEXT_PUBLIC_FEATURE_PRETESTING, true)
 } as const;

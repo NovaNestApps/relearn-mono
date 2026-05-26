@@ -21,7 +21,9 @@ import type {
     ConceptMap,
     StudyRoom,
     StudyRoomMode,
-    VoiceSession
+    VoiceSession,
+    PretestGenerateResponse,
+    PretestSubmitResponse
 } from "@/types";
 
 type ApiListEnvelope<T> = {
@@ -129,6 +131,7 @@ export type RecordStudyEventPayload = {
 
 export const PagesApi = {
     list: async (): Promise<PageItem[]> => (await api.get("/pages")).data.pages,
+    getById: async (id: string): Promise<PageItem> => (await api.get(`/pages/${id}`)).data.page,
     create: async (payload: { title: string; url: string; content?: string }): Promise<PageItem> =>
         (await api.post("/pages", { ...payload, content: payload.content || " " })).data.page,
     remove: async (id: string) => (await api.delete(`/pages/${id}`)).data
@@ -313,4 +316,11 @@ export const RoomsApi = {
 export const VoiceApi = {
     createSession: async (pageId: string): Promise<VoiceSession> =>
         (await api.post("/voice/sessions", { pageId })).data
+};
+
+export const PretestApi = {
+    generate: async (url: string, title: string, phase: 'before' | 'after' = 'before'): Promise<PretestGenerateResponse> =>
+        (await api.post('/pretest/generate', { url, title, phase })).data,
+    submit: async (pretestId: string, answers: string[], phase: 'before' | 'after'): Promise<PretestSubmitResponse> =>
+        (await api.post(`/pretest/${pretestId}/submit`, { answers, phase })).data,
 };

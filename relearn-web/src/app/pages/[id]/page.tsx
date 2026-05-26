@@ -4,10 +4,12 @@ import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import {
     FlashcardsApi,
+    PagesApi,
     QuizzesApi,
     SummariesApi
 } from "@/hooks/useApi";
-import type { ClaimCitation, ConceptMap, Flashcard, Quiz, Summary } from "@/types";
+import type { ClaimCitation, ConceptMap, Flashcard, PageItem, Quiz, Summary } from "@/types";
+import PretestModal from "@/components/features/PretestModal";
 import Markdown from "@/components/features/Markdown";
 import { routes } from "@/lib/routes";
 import { featureFlags } from "@/lib/feature-flags";
@@ -15,6 +17,8 @@ import { featureFlags } from "@/lib/feature-flags";
 export default function PageDetails({ params }: { params: { id: string } }) {
     const pageId = params.id;
     const { user, ready } = useAuth();
+    const [page, setPage] = useState<PageItem | null>(null);
+    const [showPretest, setShowPretest] = useState(false);
     const [summaries, setSummaries] = useState<Summary[]>([]);
     const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
     const [quizzes, setQuizzes] = useState<Quiz[]>([]);
@@ -42,16 +46,18 @@ export default function PageDetails({ params }: { params: { id: string } }) {
 
         const load = async () => {
             try {
-                const [s, f, q] = await Promise.all([
+                const [s, f, q, p] = await Promise.all([
                     SummariesApi.listByPage(pageId),
                     FlashcardsApi.listByPage(pageId),
-                    QuizzesApi.listByPage(pageId)
+                    QuizzesApi.listByPage(pageId),
+                    PagesApi.getById(pageId)
                 ]);
                 if (cancelled) return;
 
                 setSummaries(s);
                 setFlashcards(f);
                 setQuizzes(q);
+                setPage(p);
                 setQueueCounts({ dueNow: 0, newItems: f.length, overdue: 0 });
 
                 if (featureFlags.sourceVerification && s[0]) {
@@ -257,6 +263,9 @@ export default function PageDetails({ params }: { params: { id: string } }) {
                     <button id="generate-quiz" className="btn-secondary" onClick={generateQuiz} disabled={genBusy}>
                         {genBusy ? "Working..." : "Generate Quiz"}
                     </button>
+                    {featureFlags.pretesting && (
+                        <button className="btn-secondary" onClick={() => setShowPretest(true)}>Pre-read Quiz</button>
+                    )}
                     {featureFlags.teachBack && <a className="btn-secondary" href={routes.teachBackForPage(pageId)}>Teach-Back</a>}
                     {featureFlags.voiceStudy && <a className="btn-secondary" href={routes.voiceForPage(pageId)}>Voice</a>}
                     {featureFlags.studyRooms && <a className="btn-secondary" href={routes.roomsForPage(pageId)}>Rooms</a>}
@@ -419,6 +428,15 @@ export default function PageDetails({ params }: { params: { id: string } }) {
                     </div>
                 )}
             </section>
+
+            {showPretest && page && (
+                <PretestModal
+                    pageUrl={page.url}
+                    pageTitle={page.title}
+                    phase="before"
+                    onClose={() => setShowPretest(false)}
+                />
+            )}
         </div>
     );
 }

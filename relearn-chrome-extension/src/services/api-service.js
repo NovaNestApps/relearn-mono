@@ -569,6 +569,34 @@ let APIService = {
         return await this.request(`/api/summaries/job/${jobId}`, {
             method: 'GET'
         });
+    },
+
+    /**
+     * Generate pre-test questions for a page
+     * @param {string} url - Page URL
+     * @param {string} title - Page title
+     * @param {'before'|'after'} phase - Quiz phase
+     * @returns {Promise<{pretestId: string, questions: Array}>}
+     */
+    async generatePretest(url, title, phase = 'before') {
+        return await this.request('/api/pretest/generate', {
+            method: 'POST',
+            body: JSON.stringify({ url, title, phase })
+        });
+    },
+
+    /**
+     * Submit answers for a pre-test attempt
+     * @param {string} pretestId - Pretest attempt ID
+     * @param {string[]} answers - Selected answer options
+     * @param {'before'|'after'} phase - Quiz phase
+     * @returns {Promise<{score: number, correct: boolean[]}>}
+     */
+    async submitPretest(pretestId, answers, phase) {
+        return await this.request(`/api/pretest/${pretestId}/submit`, {
+            method: 'POST',
+            body: JSON.stringify({ answers, phase })
+        });
     }
 };
 

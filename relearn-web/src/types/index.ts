@@ -229,3 +229,18 @@ export type AuthResponse = {
     refreshToken: string;
     user: { id: string; email: string; name?: string };
 };
+
+export type PretestQuestion = {
+    question: string;
+    options: string[];
+};
+
+export type PretestGenerateResponse = {
+    pretestId: string;
+    questions: PretestQuestion[];
+};
+
+export type PretestSubmitResponse = {
+    score: number;
+    correct: boolean[];
+};

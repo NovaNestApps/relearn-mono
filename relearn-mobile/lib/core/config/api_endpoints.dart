@@ -25,4 +25,7 @@ class ApiEndpoints {
   static String studySessionComplete(String id) => '/study/session/$id/complete';
 
   static String teachback(String pageId) => '/pages/$pageId/teachback';
+
+  static const pretestGenerate = '/pretest/generate';
+  static String pretestSubmit(String id) => '/pretest/$id/submit';
 }
