@@ -74,7 +74,17 @@ describe('POST /api/study/session/:id/complete', () => {
 
   afterEach(async () => { await app.close(); });
 
+  const validResults = [
+    { flashcardId: '550e8400-e29b-41d4-a716-446655440000', correct: true, timeTaken: 2000, confidence: 3 },
+    { flashcardId: '550e8400-e29b-41d4-a716-446655440001', correct: false, timeTaken: 5000, confidence: 1 },
+  ];
+
   it('marks session complete and creates reviews', async () => {
+    (mockPrisma.studySession.findUnique as jest.Mock).mockResolvedValue({ userId: 'user-123' });
+    (mockPrisma.flashcard.findMany as jest.Mock).mockResolvedValue([
+      { id: '550e8400-e29b-41d4-a716-446655440000' },
+      { id: '550e8400-e29b-41d4-a716-446655440001' },
+    ]);
     (mockPrisma.studySession.update as jest.Mock).mockResolvedValue({ id: 'session-1' });
     (mockPrisma.flashcardReview.createMany as jest.Mock).mockResolvedValue({ count: 2 });
 
@@ -82,19 +92,73 @@ describe('POST /api/study/session/:id/complete', () => {
       method: 'POST',
       url: '/api/study/session/session-1/complete',
       headers: { 'content-type': 'application/json' },
-      payload: {
-        results: [
-          { flashcardId: '550e8400-e29b-41d4-a716-446655440000', correct: true, timeTaken: 2000, confidence: 3 },
-          { flashcardId: '550e8400-e29b-41d4-a716-446655440001', correct: false, timeTaken: 5000, confidence: 1 },
-        ],
-      },
+      payload: { results: validResults },
     });
 
     expect(res.statusCode).toBe(200);
+    expect(JSON.parse(res.body).reviewed).toBe(2);
     expect(mockPrisma.flashcardReview.createMany).toHaveBeenCalledWith({
       data: expect.arrayContaining([
         expect.objectContaining({ flashcardId: '550e8400-e29b-41d4-a716-446655440000', correct: true }),
       ]),
     });
+  });
+
+  it('returns 404 for non-existent session', async () => {
+    (mockPrisma.studySession.findUnique as jest.Mock).mockResolvedValue(null);
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/study/session/session-x/complete',
+      headers: { 'content-type': 'application/json' },
+      payload: { results: [] },
+    });
+
+    expect(res.statusCode).toBe(404);
+  });
+
+  it('returns 403 when session belongs to another user', async () => {
+    (mockPrisma.studySession.findUnique as jest.Mock).mockResolvedValue({ userId: 'other-user' });
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/study/session/session-1/complete',
+      headers: { 'content-type': 'application/json' },
+      payload: { results: [] },
+    });
+
+    expect(res.statusCode).toBe(403);
+  });
+
+  it('silently drops unowned flashcard IDs from review records', async () => {
+    (mockPrisma.studySession.findUnique as jest.Mock).mockResolvedValue({ userId: 'user-123' });
+    // Only one of two submitted IDs is owned
+    (mockPrisma.flashcard.findMany as jest.Mock).mockResolvedValue([
+      { id: '550e8400-e29b-41d4-a716-446655440000' },
+    ]);
+    (mockPrisma.studySession.update as jest.Mock).mockResolvedValue({ id: 'session-1' });
+    (mockPrisma.flashcardReview.createMany as jest.Mock).mockResolvedValue({ count: 1 });
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/study/session/session-1/complete',
+      headers: { 'content-type': 'application/json' },
+      payload: { results: validResults },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(JSON.parse(res.body).reviewed).toBe(1);
+    // Only the owned card written to DB
+    expect(mockPrisma.flashcardReview.createMany).toHaveBeenCalledWith({
+      data: [expect.objectContaining({ flashcardId: '550e8400-e29b-41d4-a716-446655440000' })],
+    });
+    // Session persists only verified results
+    expect(mockPrisma.studySession.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          results: [expect.objectContaining({ flashcardId: '550e8400-e29b-41d4-a716-446655440000' })],
+        }),
+      })
+    );
   });
 });

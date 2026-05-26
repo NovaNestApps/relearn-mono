@@ -101,7 +101,7 @@ export default async function studySessionRoutes(app: FastifyInstance) {
 
     await prisma.studySession.update({
       where: { id },
-      data: { results: body.results, completedAt: new Date() },
+      data: { results: verifiedResults, completedAt: new Date() },
     });
 
     if (verifiedResults.length > 0) {
