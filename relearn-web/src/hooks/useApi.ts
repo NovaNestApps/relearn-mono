@@ -24,7 +24,8 @@ import type {
     VoiceSession,
     PretestGenerateResponse,
     PretestSubmitResponse,
-    WeakSpotsResponse
+    WeakSpotsResponse,
+    GraphResponse
 } from "@/types";
 
 type ApiListEnvelope<T> = {
@@ -331,4 +332,11 @@ export const AnalyticsApi = {
         (await api.get('/analytics/weakspots')).data as WeakSpotsResponse,
     requestRemediation: async (conceptTags: string[]): Promise<{ jobId: string }> =>
         (await api.post('/analytics/remediation', { conceptTags })).data as { jobId: string },
+};
+
+export const GraphApi = {
+    getGraph: async (): Promise<GraphResponse> =>
+        (await api.get('/graph')).data as GraphResponse,
+    getPageGraph: async (pageId: string): Promise<GraphResponse> =>
+        (await api.get(`/graph/page/${pageId}`)).data as GraphResponse,
 };

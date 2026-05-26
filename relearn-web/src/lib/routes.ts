@@ -40,6 +40,8 @@ export const routes = {
     studyPage: (pageId: string) => routeWithQuery("/study", { pageId }),
     teachBackForPage: (pageId: string) => routeWithQuery("/teachback", { pageId }),
     voiceForPage: (pageId: string) => routeWithQuery("/voice", { pageId }),
-    roomsForPage: (pageId: string) => routeWithQuery("/rooms", { pageId })
+    roomsForPage: (pageId: string) => routeWithQuery("/rooms", { pageId }),
+    graph: routePath("/graph"),
+    pageGraph: (pageId: string) => routeWithQuery("/graph", { pageId }),
 } as const;
 

@@ -37,5 +37,6 @@ export const prisma = {
   },
   pageConcept: {
     createMany: jest.fn(),
+    findMany: jest.fn(),
   },
 };

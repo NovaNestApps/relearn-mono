@@ -172,12 +172,30 @@ export const remediationQueue = new Queue<RemediationJobData>('remediation', {
   },
 });
 
+interface ConceptJobData {
+  pageId: string;
+  userId: string;
+  content: string;
+  title: string;
+}
+
+export const conceptQueue = new Queue<ConceptJobData>('concepts', {
+  connection: redis,
+  defaultJobOptions: {
+    attempts: 3,
+    backoff: { type: 'exponential', delay: 2000 },
+    removeOnComplete: { count: 100 },
+    removeOnFail: { count: 1000 },
+  },
+});
+
 // Graceful shutdown
 export async function closeQueues() {
   await summaryQueue.close();
   await flashcardQueue.close();
   await quizQueue.close();
   await remediationQueue.close();
+  await conceptQueue.close();
   await summaryWorker.close();
   await flashcardWorker.close();
   await quizWorker.close();

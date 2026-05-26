@@ -8,6 +8,9 @@ import '../features/auth/presentation/signup_page.dart';
 import '../features/flashcards/presentation/flashcards_page.dart';
 import '../features/quizzes/presentation/quiz_page.dart';
 import '../features/settings/presentation/settings_page.dart';
+import '../features/concepts/data/concepts_repository.dart';
+import '../features/concepts/presentation/concept_detail_screen.dart';
+import '../features/concepts/presentation/concepts_screen.dart';
 import '../features/summaries/presentation/summaries_page.dart';
 import '../features/summaries/presentation/summary_details_page.dart';
 
@@ -41,6 +44,21 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           path: '/summary/:id/quiz',
           builder: (_, s) => QuizPage(summaryId: s.pathParameters['id']!)),
       GoRoute(path: '/settings', builder: (_, __) => const SettingsPage()),
+      GoRoute(path: '/concepts', builder: (_, __) => const ConceptsScreen()),
+      GoRoute(
+        path: '/concepts/:id',
+        builder: (_, state) {
+          final extra = state.extra as Map<String, dynamic>? ?? {};
+          final node = extra['node'] as ConceptNode?;
+          final graph = extra['graph'] as ConceptGraph?;
+          if (node == null) {
+            return const Scaffold(
+              body: Center(child: Text('Concept not found.')),
+            );
+          }
+          return ConceptDetailScreen(node: node, graph: graph);
+        },
+      ),
     ],
   );
 });
