@@ -22,6 +22,7 @@ import studySessionRoutes from './api/routes/study-session.routes';
 import teachbackRoutes from './api/routes/teachback.routes';
 import pretestRoutes from './api/routes/pretest.routes';
 import analyticsRoutes from './api/routes/analytics.routes';
+import './llm/processors/remediation-generator';
 
 const server = Fastify({
   logger: true,
