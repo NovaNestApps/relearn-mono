@@ -20,4 +20,7 @@ class ApiEndpoints {
       '/quizzes/summary/$summaryId';
 
   static const flashcardReviews = '/flashcard-reviews';
+
+  static const pretestGenerate = '/pretest/generate';
+  static String pretestSubmit(String id) => '/pretest/$id/submit';
 }
