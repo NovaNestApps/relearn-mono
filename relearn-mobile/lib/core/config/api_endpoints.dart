@@ -20,4 +20,7 @@ class ApiEndpoints {
       '/quizzes/summary/$summaryId';
 
   static const flashcardReviews = '/flashcard-reviews';
+
+  static const studySession = '/study/session';
+  static String studySessionComplete(String id) => '/study/session/$id/complete';
 }

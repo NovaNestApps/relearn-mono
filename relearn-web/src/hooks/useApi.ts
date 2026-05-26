@@ -4,6 +4,8 @@ import type {
     Summary,
     Flashcard,
     FlashcardReview,
+    StudySessionResponse,
+    StudySessionResult,
     Quiz,
     ClaimCitation,
     SummaryVerificationResult,
@@ -191,6 +193,19 @@ export const FlashcardReviewsApi = {
         confidence: 1 | 2 | 3 | 4;
     }): Promise<FlashcardReview> =>
         (await api.post('/flashcard-reviews', payload)).data.review,
+};
+
+export const StudySessionApi = {
+    create: async (params?: { cardCount?: number; pageIds?: string[] }): Promise<StudySessionResponse> => {
+        const query = new URLSearchParams();
+        if (params?.cardCount) query.set('cardCount', String(params.cardCount));
+        if (params?.pageIds?.length) query.set('pageIds', params.pageIds.join(','));
+        const res = await api.get(`/study/session?${query}`);
+        return res.data as StudySessionResponse;
+    },
+    complete: async (sessionId: string, results: StudySessionResult[]): Promise<void> => {
+        await api.post(`/study/session/${sessionId}/complete`, { results });
+    },
 };
 
 export const QuizzesApi = {

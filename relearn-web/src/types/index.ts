@@ -33,6 +33,27 @@ export type FlashcardReview = {
     reviewedAt: string;
 };
 
+export type StudySessionCard = {
+    id: string;
+    pageId: string;
+    question: string;
+    answer: string;
+    difficulty: string;
+    conceptTags: string[];
+};
+
+export type StudySessionResult = {
+    flashcardId: string;
+    correct: boolean;
+    timeTaken: number;
+    confidence: number;
+};
+
+export type StudySessionResponse = {
+    sessionId: string;
+    cards: StudySessionCard[];
+};
+
 export type Quiz = {
     id: string;
     pageId: string;

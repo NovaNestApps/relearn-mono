@@ -18,6 +18,7 @@ import summaryRoutes from './api/routes/summary.routes';
 import flashcardRoutes from './api/routes/flashcard.routes';
 import quizRoutes from './api/routes/quiz.routes';
 import flashcardReviewRoutes from './api/routes/flashcard-review.routes';
+import studySessionRoutes from './api/routes/study-session.routes';
 
 const server = Fastify({
   logger: true,
@@ -72,6 +73,7 @@ async function start() {
     server.register(flashcardRoutes, { prefix: '/api/flashcards' });
     server.register(quizRoutes, { prefix: '/api/quizzes' });
     server.register(flashcardReviewRoutes, { prefix: '/api/flashcard-reviews' });
+    server.register(studySessionRoutes, { prefix: '/api/study' });
 
     // Setup WebSocket
     setupWebSocket(server);
