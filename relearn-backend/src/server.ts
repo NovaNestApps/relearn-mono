@@ -22,6 +22,7 @@ import studySessionRoutes from './api/routes/study-session.routes';
 import teachbackRoutes from './api/routes/teachback.routes';
 import pretestRoutes from './api/routes/pretest.routes';
 import analyticsRoutes from './api/routes/analytics.routes';
+import graphRoutes from './api/routes/graph.routes';
 import './llm/processors/remediation-generator';
 import './llm/processors/concept-extractor';
 
@@ -82,6 +83,7 @@ async function start() {
     server.register(teachbackRoutes, { prefix: '/api/pages' });
     server.register(pretestRoutes, { prefix: '/api/pretest' });
     server.register(analyticsRoutes, { prefix: '/api/analytics' });
+    server.register(graphRoutes, { prefix: '/api/graph' });
 
     // Setup WebSocket
     setupWebSocket(server);
