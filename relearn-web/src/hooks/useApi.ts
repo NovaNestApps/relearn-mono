@@ -244,6 +244,10 @@ export const QuizzesApi = {
     }
 };
 
+// NOTE: StudyApi.recordEvent (/study/events), getQueue (/study/queue), and recomputeMemory
+// (/memory/recompute) target backend routes that are not yet implemented.
+// These are gated by NEXT_PUBLIC_FEATURE_ADAPTIVE_MEMORY (default: true) but the backend
+// stubs are missing. Implement before enabling in production.
 export const StudyApi = {
     recordEvent: async (payload: RecordStudyEventPayload): Promise<StudyEvent> =>
         (await api.post("/study/events", payload)).data,
@@ -266,19 +270,21 @@ export const StudyApi = {
 };
 
 export const TeachBackApi = {
-    evaluate: async (pageId: string, transcript: string, mode: "text" | "voice" = "text"): Promise<TeachBackEvaluationResult> => {
-        const { data } = await api.post("/teachback/evaluate", { pageId, transcript, mode });
-        if (data?.attempt) return data as TeachBackEvaluationResult;
-
-        const fallbackAttempt: TeachBackAttempt = {
+    // Calls POST /pages/:pageId/teachback and maps TeachBackResult to TeachBackEvaluationResult.
+    // `mode` is client-side only (text vs voice dictation); backend receives attemptText regardless.
+    evaluate: async (pageId: string, transcript: string, _mode: "text" | "voice" = "text"): Promise<TeachBackEvaluationResult> => {
+        const { data } = await api.post(`/pages/${pageId}/teachback`, { attemptText: transcript });
+        const result = data as TeachBackResult;
+        const attempt: TeachBackAttempt = {
             id: crypto.randomUUID(),
             pageId,
             transcript,
-            coverageScore: 0,
-            misconceptionTags: [],
-            createdAt: new Date().toISOString()
+            coverageScore: result.score ?? 0,
+            misconceptionTags: result.gaps ?? [],
+            createdAt: new Date().toISOString(),
         };
-        return { attempt: fallbackAttempt, repairFlashcards: [] };
+        // repairFlashcards are generated asynchronously by the remediation worker; not returned here
+        return { attempt, repairFlashcards: [] };
     },
 
     submit: async (pageId: string, attemptText: string): Promise<TeachBackResult> => {
@@ -292,6 +298,8 @@ export const TeachBackApi = {
     },
 };
 
+// NOTE: ConceptMapApi (/concept-map) targets a backend route that does not yet exist.
+// Gated by NEXT_PUBLIC_FEATURE_CONCEPT_MAP (default: false). Implement before enabling.
 export const ConceptMapApi = {
     get: async (pageId: string): Promise<ConceptMap> => {
         const { data } = await api.get(`/concept-map?pageId=${pageId}`);
@@ -308,6 +316,9 @@ export const ConceptMapApi = {
     }
 };
 
+// NOTE: RoomsApi (/rooms) and VoiceApi (/voice/sessions) target backend routes that do not
+// yet exist. Gated by NEXT_PUBLIC_FEATURE_STUDY_ROOMS / NEXT_PUBLIC_FEATURE_VOICE_STUDY
+// (both default: false). Implement backend routes before enabling these flags.
 export const RoomsApi = {
     create: async (pageId: string, mode: StudyRoomMode = "quiz_battle"): Promise<StudyRoom> =>
         (await api.post("/rooms", { pageId, mode })).data,
