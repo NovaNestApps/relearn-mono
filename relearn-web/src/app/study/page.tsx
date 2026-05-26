@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
-import { FlashcardsApi, StudyApi } from "@/hooks/useApi";
+import { FlashcardsApi, FlashcardReviewsApi, StudyApi } from "@/hooks/useApi";
 import type { Flashcard, MemoryState, QueueBucket, StudyQueueResponse } from "@/types";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -199,6 +199,13 @@ function StudyPageContent() {
         } catch {
             // keep local progress even when backend event ingestion is unavailable
         }
+
+        FlashcardReviewsApi.create({
+            flashcardId: current.id,
+            correct: pendingOutcome === "know",
+            timeTaken: latencyMs,
+            confidence: Math.min(4, Math.max(1, confidence)) as 1 | 2 | 3 | 4,
+        }).catch(() => {/* fire-and-forget — local state already updated */});
 
         if (pendingOutcome === "know") setKnow((x) => x + 1);
         else setDontKnow((x) => x + 1);
