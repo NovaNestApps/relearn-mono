@@ -6,6 +6,7 @@ interface FlashcardData {
   question: string;
   answer: string;
   difficulty?: 'easy' | 'medium' | 'hard';
+  conceptTags?: string[];
 }
 
 export async function generateFlashcards(
@@ -42,6 +43,7 @@ export async function generateFlashcards(
         question: fc.question,
         answer: fc.answer,
         difficulty: fc.difficulty || 'medium',
+        conceptTags: Array.isArray(fc.conceptTags) ? fc.conceptTags : [],
       })),
     });
     
