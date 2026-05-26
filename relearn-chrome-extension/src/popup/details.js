@@ -33,13 +33,123 @@ const elements = {
   flashcardsModal: document.getElementById('flashcardsModal'),
   closeFlashcardsModal: document.getElementById('closeFlashcardsModal'),
   quizModal: document.getElementById('quizModal'),
-  closeQuizModal: document.getElementById('closeQuizModal')
+  closeQuizModal: document.getElementById('closeQuizModal'),
+  pretestBtn: document.getElementById('pretestBtn'),
+  pretestContainer: document.getElementById('pretestContainer')
 };
 
 // State
 let currentSummary = null;
 let summaryId = null;
 let markdownReady = false;
+
+// Pretest state
+let pretestState = {
+  step: 'idle', // idle | loading | quiz | result
+  pretestId: null,
+  questions: [],
+  selected: [],
+  current: 0,
+  result: null
+};
+
+function renderPretest() {
+  const { step, questions, selected, current, result } = pretestState;
+  const c = elements.pretestContainer;
+  c.innerHTML = '';
+
+  if (step === 'idle') return;
+
+  if (step === 'loading') {
+    c.innerHTML = '<p style="color:#667085;font-size:13px">Generating questions…</p>';
+    return;
+  }
+
+  if (step === 'quiz' && questions.length > 0) {
+    const q = questions[current];
+    const isLast = current === questions.length - 1;
+    const div = document.createElement('div');
+    div.style.cssText = 'display:flex;flex-direction:column;gap:8px';
+    div.innerHTML = `
+      <p style="font-size:11px;color:#98a2b3">Question ${current + 1} / ${questions.length}</p>
+      <p style="font-weight:500;font-size:14px;margin:0">${q.question}</p>
+    `;
+    q.options.forEach(opt => {
+      const btn = document.createElement('button');
+      const picked = selected[current] === opt;
+      btn.textContent = opt;
+      btn.style.cssText = `text-align:left;padding:8px 12px;border-radius:6px;border:1.5px solid ${picked ? '#6366f1' : '#e4e7ec'};background:${picked ? '#eef2ff' : 'white'};color:${picked ? '#4f46e5' : '#344054'};cursor:pointer;font-size:13px`;
+      btn.onclick = () => {
+        pretestState.selected[current] = opt;
+        renderPretest();
+      };
+      div.appendChild(btn);
+    });
+    const actionBtn = document.createElement('button');
+    actionBtn.className = 'btn-primary';
+    actionBtn.style.marginTop = '4px';
+    if (isLast) {
+      actionBtn.textContent = 'Submit';
+      actionBtn.disabled = !selected.every(s => s);
+      actionBtn.onclick = submitPretest;
+    } else {
+      actionBtn.textContent = 'Next';
+      actionBtn.disabled = !selected[current];
+      actionBtn.onclick = () => { pretestState.current++; renderPretest(); };
+    }
+    div.appendChild(actionBtn);
+    c.appendChild(div);
+    return;
+  }
+
+  if (step === 'result' && result) {
+    const pct = Math.round(result.score * 100);
+    const numCorrect = result.correct.filter(Boolean).length;
+    c.innerHTML = `
+      <div style="text-align:center;padding:12px 0">
+        <div style="font-size:36px;font-weight:700;color:#6366f1">${pct}%</div>
+        <div style="color:#667085;font-size:13px;margin-top:4px">${numCorrect} / ${result.correct.length} correct</div>
+        <div style="display:flex;gap:6px;justify-content:center;margin-top:12px">
+          ${result.correct.map((c, i) => `<span style="width:24px;height:24px;border-radius:50%;background:${c ? '#22c55e' : '#f87171'};display:inline-flex;align-items:center;justify-content:center;color:white;font-size:11px">${i + 1}</span>`).join('')}
+        </div>
+      </div>
+    `;
+  }
+}
+
+async function startPretest() {
+  if (!currentSummary) return;
+  pretestState = { step: 'loading', pretestId: null, questions: [], selected: [], current: 0, result: null };
+  renderPretest();
+  try {
+    const res = await APIService.generatePretest(currentSummary.url, currentSummary.title || 'Untitled');
+    if (!res.success) throw new Error(res.error);
+    pretestState.pretestId = res.data.pretestId;
+    pretestState.questions = res.data.questions;
+    pretestState.selected = new Array(res.data.questions.length).fill('');
+    pretestState.step = 'quiz';
+  } catch (e) {
+    pretestState.step = 'idle';
+    elements.pretestContainer.innerHTML = `<p style="color:#f87171;font-size:13px">Failed: ${e.message}</p>`;
+    return;
+  }
+  renderPretest();
+}
+
+async function submitPretest() {
+  pretestState.step = 'loading';
+  renderPretest();
+  try {
+    const res = await APIService.submitPretest(pretestState.pretestId, pretestState.selected, 'before');
+    if (!res.success) throw new Error(res.error);
+    pretestState.result = res.data;
+    pretestState.step = 'result';
+  } catch (e) {
+    pretestState.step = 'quiz';
+    elements.pretestContainer.querySelector && console.error('Submit failed', e);
+  }
+  renderPretest();
+}
 
 /**
  * Wait for markdown libraries to load
@@ -145,6 +255,9 @@ function setupEventListeners() {
     elements.deleteModal.classList.add('hidden');
   });
   elements.confirmDelete.addEventListener('click', deleteSummary);
+
+  // Pre-test
+  elements.pretestBtn.addEventListener('click', startPretest);
 
   // Create flashcards
   elements.createFlashcardsBtn.addEventListener('click', createFlashcards);
