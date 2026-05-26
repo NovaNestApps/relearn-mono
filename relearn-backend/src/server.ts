@@ -23,6 +23,7 @@ import teachbackRoutes from './api/routes/teachback.routes';
 import pretestRoutes from './api/routes/pretest.routes';
 import analyticsRoutes from './api/routes/analytics.routes';
 import './llm/processors/remediation-generator';
+import './llm/processors/concept-extractor';
 
 const server = Fastify({
   logger: true,

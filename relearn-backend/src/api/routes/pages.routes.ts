@@ -47,6 +47,15 @@ export default async function pageRoutes(app: FastifyInstance) {
       },
     });
 
+    // Enqueue concept extraction (fire-and-forget)
+    const { conceptQueue } = await import('../../llm/queue');
+    conceptQueue.add('extract-concepts', {
+      pageId: page.id,
+      userId: page.userId,
+      content: page.content,
+      title: page.title,
+    }).catch(() => { /* non-blocking */ });
+
     return reply.status(201).send({ page });
   });
 
