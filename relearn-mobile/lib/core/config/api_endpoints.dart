@@ -20,4 +20,6 @@ class ApiEndpoints {
       '/quizzes/summary/$summaryId';
 
   static const flashcardReviews = '/flashcard-reviews';
+
+  static String teachback(String pageId) => '/pages/$pageId/teachback';
 }
