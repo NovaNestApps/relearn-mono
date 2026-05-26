@@ -1,90 +1,113 @@
 # relearn-mobile
 
-Flutter mobile client for Webpage Reader backend.
+Flutter mobile client for the Relearn platform.
 
 ## Stack
 
-- Flutter (Material 3)
+- Flutter 3+ (Material 3)
 - Riverpod (state management)
 - go_router (routing)
-- Dio (HTTP client + auth/refresh interceptor)
+- Dio (HTTP + auth/refresh interceptor)
 - flutter_secure_storage (token storage)
 
 ## Features
 
-- Login / Signup
-- Summaries list
-- Summary details
-- Flashcards view
-- Quiz view
-- Settings
-  - spaced repetition preference
-  - notification preference
-  - notification time
-  - user profile data (name/email)
+- Auth (login / signup / token refresh)
+- Summaries list + detail
+- Flashcards view per summary
+- Quiz view per summary
+- Flashcard review persistence (confidence 1–4)
+- Study session — interleaved cards from multiple pages
+- Pre-read quiz (bottom sheet) before reading a summary
+- Weak spots analytics + drill-card generation
+- Concept list (searchable) + concept detail with related concepts
+- Settings (spaced repetition, notifications, profile)
 
-## Prerequisites
-
-- Flutter SDK installed (`flutter --version`)
-- Backend running at port 3001 (`relearn-backend`)
-
-## Run
+## Quick Start
 
 ```bash
-cd relearn-mobile
 flutter pub get
-```
 
-### Android emulator
-
-```bash
+# Android emulator
 flutter run --dart-define=API_BASE_URL=http://10.0.2.2:3001/api
-```
 
-### iOS simulator / macOS
-
-```bash
+# iOS simulator / macOS
 flutter run --dart-define=API_BASE_URL=http://localhost:3001/api
 ```
 
-## Useful commands
+## Backend Endpoints Used
+
+```
+POST /api/auth/login|register|refresh
+GET  /api/auth/me
+PATCH /api/auth/me/settings
+
+GET  /api/summaries
+GET  /api/summaries/:id
+
+GET  /api/pages/:id
+GET  /api/flashcards/summary/:summaryId
+GET  /api/quizzes/summary/:summaryId
+
+POST /api/flashcard-reviews
+
+GET  /api/study/session
+POST /api/study/session/:id/complete
+
+POST /api/pretest/generate
+POST /api/pretest/:id/submit
+
+GET  /api/analytics/weakspots
+POST /api/analytics/remediation
+
+GET  /api/graph
+GET  /api/graph/page/:pageId
+```
+
+## App Routes (go_router)
+
+| Path | Screen |
+|------|--------|
+| `/login` | LoginPage |
+| `/signup` | SignupPage |
+| `/summaries` | SummariesPage |
+| `/summary/:id` | SummaryDetailsPage |
+| `/summary/:id/flashcards` | FlashcardsPage |
+| `/summary/:id/quiz` | QuizPage |
+| `/settings` | SettingsPage |
+| `/concepts` | ConceptsScreen (searchable list) |
+| `/concepts/:id` | ConceptDetailScreen |
+
+Pre-read quiz opens as `PretestBottomSheet.show()` from SummaryDetailsPage.
+Weak spots is opened from navigation/settings as `WeakSpotsScreen`.
+
+## Feature Directory Structure
+
+```
+lib/
+├── core/
+│   ├── config/api_endpoints.dart   # All endpoint constants
+│   ├── network/api_client.dart     # Dio + auth headers + refresh retry
+│   └── storage/secure_storage.dart
+├── features/
+│   ├── auth/
+│   ├── summaries/
+│   ├── flashcards/
+│   ├── quizzes/
+│   ├── study_session/
+│   ├── pretest/
+│   ├── analytics/
+│   ├── concepts/                   # Concept list + detail
+│   ├── teachback/
+│   └── settings/
+├── models/models.dart
+└── shared/router.dart
+```
+
+## Useful Commands
 
 ```bash
 flutter analyze
 flutter test
-```
-
-## Backend dependency notes
-
-Mobile app uses authenticated backend routes including:
-
-- `POST /api/auth/login`
-- `POST /api/auth/register`
-- `POST /api/auth/refresh`
-- `GET /api/auth/me`
-- `PATCH /api/auth/me/settings`
-- `GET /api/summaries`
-- `GET /api/summaries/:id`
-- `GET /api/flashcards/summary/:summaryId`
-- `GET /api/quizzes/summary/:summaryId`
-
-If flashcards/quizzes appear empty, verify backend has records for the same summary/page and authenticated user.
-
-## Folder structure
-
-```
-lib/
-  app/
-  core/
-    config/
-    network/
-    storage/
-  features/
-    auth/
-    summaries/
-    flashcards/
-    quizzes/
-    settings/
-  models/
-  shared/
+dart format lib test
 ```

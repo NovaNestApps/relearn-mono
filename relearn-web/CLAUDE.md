@@ -2,7 +2,7 @@
 
 ## Stack
 
-Next.js 14 App Router, TypeScript strict, Tailwind CSS. Dev: `npm run dev` on port 3000. Requires backend at `http://localhost:3001`.
+Next.js 14 App Router, TypeScript strict, Tailwind CSS, React Flow. Dev: `npm run dev` on port 3000. Requires backend at `http://localhost:3001`.
 
 ## Key Files
 
@@ -15,6 +15,9 @@ Next.js 14 App Router, TypeScript strict, Tailwind CSS. Dev: `npm run dev` on po
 | `src/lib/routes.ts` | Route constants — never hardcode route strings in components |
 | `src/lib/feature-flags.ts` | `NEXT_PUBLIC_FEATURE_*` toggles — wrap experimental UI in these |
 | `src/lib/memory.ts` | Local spaced-repetition scheduler + queue bucket logic |
+| `src/app/analytics/page.tsx` | Weakspots + drill-card UI |
+| `src/app/graph/page.tsx` | React Flow concept graph (full + page-scoped) |
+| `src/components/features/PretestModal.tsx` | Pre-read quiz modal (idle→quiz→result) |
 
 ## App Router
 
@@ -103,6 +106,12 @@ For routes with query params use `routeWithQuery(path, params)` from the same fi
 ## TypeScript
 
 Strict mode. No `any` — use `unknown` and narrow. Errors caught in catch blocks should be typed as `unknown` then checked with `instanceof`. Never cast to `any` to suppress type errors.
+
+## Implemented API Clients
+
+`PagesApi`, `SummariesApi`, `FlashcardsApi`, `FlashcardReviewApi`, `QuizApi`, `TeachBackApi`, `PretestApi`, `AnalyticsApi`, `GraphApi` — all backed by real backend routes.
+
+`StudyApi`, `ConceptMapApi`, `RoomsApi`, `VoiceApi` — flag-gated; backend routes not yet implemented (see comments in `useApi.ts`).
 
 ## Build Check
 

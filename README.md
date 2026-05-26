@@ -1,36 +1,40 @@
-# Webpage Reader Mono
+# Relearn Mono
 
-AI-powered learning system that turns any webpage into structured knowledge — summaries, flashcards, quizzes, and spaced repetition study sessions.
+AI-powered adaptive learning system that turns any webpage into structured knowledge — summaries, flashcards, quizzes, spaced-repetition study, pre-reading assessment, teach-back evaluation, error-pattern analysis, and a concept knowledge graph.
 
 ## Projects
 
 | Project | Path | Purpose |
 |---------|------|---------|
-| **Relearn** | [`relearn-chrome-extension/`](relearn-chrome-extension/) | Chrome extension — reads pages, generates summaries/Q&A on-device |
-| **Backend** | [`relearn-backend/`](relearn-backend/) | Fastify/TypeScript API — auth, persistence, AI job queue |
-| **Relearn Web** | [`relearn-web/`](relearn-web/) | Next.js 14 app — study sessions, flashcards, quizzes, adaptive memory |
-| **Relearn Mobile** | [`relearn-mobile/`](relearn-mobile/) | Flutter mobile app — auth, summaries, flashcards, quizzes, settings |
+| **Chrome Extension** | [`relearn-chrome-extension/`](relearn-chrome-extension/) | MV3 extension — reads pages, generates summaries/flashcards/quizzes on-device, pre-read quiz UI |
+| **Backend** | [`relearn-backend/`](relearn-backend/) | Fastify/TypeScript API — auth, persistence, AI job queue, concept extraction |
+| **Web App** | [`relearn-web/`](relearn-web/) | Next.js 14 — study sessions, analytics, concept graph, teach-back, pre-testing |
+| **Mobile App** | [`relearn-mobile/`](relearn-mobile/) | Flutter — auth, summaries, flashcards, quizzes, pretest, weakspots, concepts |
 
 ## Architecture
 
 ```
 Chrome Extension (relearn-chrome-extension)
   │  Extracts page content
-  │  Generates summaries locally (Chrome AI / Ollama / WebLLM)
-  │  Syncs saved summaries + quizzes + flashcards to backend
+  │  On-device AI: Chrome AI → Ollama → WebLLM
+  │  Pre-read quiz before saving
+  │  Syncs pages, flashcards, quizzes to backend
   ▼
 Backend API (relearn-backend) — localhost:3001
-  │  Fastify + TypeScript + Prisma + PostgreSQL
-  │  BullMQ job queue → Ollama LLM workers
+  │  Fastify 5 + TypeScript + Prisma + PostgreSQL
+  │  BullMQ workers → Ollama LLM
+  │    • summary / flashcard / quiz generation
+  │    • concept extraction (auto on page save)
+  │    • remediation drill-card generation
   │  Socket.io realtime events (Redis adapter)
   ▼
-Web App (relearn-web) — localhost:3000
-  │  Next.js 14 (App Router)
-  │  Adaptive spaced-repetition study
-  ▼
-Mobile App (relearn-mobile)
-     Flutter + Riverpod + go_router
-     Summaries, flashcards, quizzes, user settings
+Web App (relearn-web) — localhost:3000      Mobile App (relearn-mobile)
+  Next.js 14 App Router                       Flutter + Riverpod + go_router
+  Spaced-repetition study sessions            Summaries, flashcards, quizzes
+  Teach-back tutor                            Pretest bottom sheet
+  Pre-reading assessment                      Weak spots + drill cards
+  Error-pattern analytics                     Concept list + detail
+  Concept knowledge graph (React Flow)
 ```
 
 ## Quick Start (Full Stack)
@@ -56,7 +60,7 @@ cd ..
 cd relearn-backend
 npm install
 cp .env.example .env
-# Edit .env: set JWT_SECRET and JWT_REFRESH_SECRET (openssl rand -base64 32)
+# Set JWT_SECRET and JWT_REFRESH_SECRET (openssl rand -base64 32)
 npm run prisma:migrate
 npm run dev
 # Running at http://localhost:3001
@@ -67,7 +71,8 @@ npm run dev
 ```bash
 cd relearn-web
 npm install
-# Create .env.local with NEXT_PUBLIC_API_BASE=http://localhost:3001/api
+# .env.local:
+# NEXT_PUBLIC_API_BASE=http://localhost:3001/api
 npm run dev
 # Running at http://localhost:3000
 ```
@@ -80,7 +85,7 @@ flutter pub get
 # Android emulator
 flutter run --dart-define=API_BASE_URL=http://10.0.2.2:3001/api
 # iOS simulator/macOS
-# flutter run --dart-define=API_BASE_URL=http://localhost:3001/api
+flutter run --dart-define=API_BASE_URL=http://localhost:3001/api
 ```
 
 ### 5. Chrome extension
@@ -110,41 +115,47 @@ docker exec -it docker-ollama-1 ollama pull llama3.2
 | Adminer (DB UI) | 8080 |
 | Prisma Studio | 5555 |
 
-## Data Flow
-
-1. User installs Chrome extension and browses to any webpage
-2. Extension extracts DOM content and generates summary locally (no backend required)
-3. User can save summaries to backend (requires account)
-4. Extension can sync generated quizzes and flashcards to backend when authenticated
-5. Backend queues AI jobs via BullMQ → Ollama generates flashcards and quizzes
-6. Web and mobile apps fetch summaries/flashcards/quizzes and render study experiences
-7. Realtime sync via Socket.io keeps extension and web app in sync
-
-## Shared Data Model
+## Data Model
 
 ```
-User → Pages → Summaries → Flashcards
-                         → Quizzes → QuizQuestions
+User
+ ├── Page (saved webpages)
+ │    ├── Summary → Flashcard (with conceptTags)
+ │    │              └── FlashcardReview (per-card study events)
+ │    ├── Quiz → QuizQuestion
+ │    ├── TeachBackAttempt
+ │    ├── PretestAttempt
+ │    └── PageConcept ─── Concept ─── ConceptRelation ─── Concept
+ └── StudySession (interleaved card batches)
 ```
 
-All entities cascade-delete on parent removal. Users own all their data via JWT-authenticated requests.
+All entities cascade-delete on parent removal. Users own all data via JWT.
+
+## Features by Plan
+
+| Plan | Feature | Status |
+|------|---------|--------|
+| 0 | Foundation — schema, Jest, FlashcardReview | ✅ |
+| 1 | Spaced Repetition — interleaved study sessions | ✅ |
+| 2 | Study Sessions — session create/complete, review persistence | ✅ |
+| 3 | Pre-Testing — generate quiz before reading, score after | ✅ |
+| 4 | Error Pattern Analysis — weakspots, remediation drill cards | ✅ |
+| 5 | Concept Graph — auto-extract concepts, React Flow visualization | ✅ |
 
 ## AI Providers
 
 | Provider | Where Used | Notes |
 |----------|-----------|-------|
 | Chrome AI (Gemini Nano) | Extension | On-device, requires Chrome flags |
-| Ollama | Extension + Backend | Self-hosted, ~2GB model download |
-| WebLLM | Extension | Browser-based WASM, WebGPU required |
+| Ollama | Extension + Backend | Self-hosted, `llama3.2` recommended |
+| WebLLM | Extension | Browser WASM, WebGPU required |
 
 ## Repo Layout
 
 ```
 webpage-reader-mono/
-├── relearn-chrome-extension/      # Chrome extension (vanilla JS, MV3)
-├── relearn-backend/ # Fastify API server (TypeScript)
-├── relearn-web/     # Next.js 14 web app (TypeScript)
-└── relearn-mobile/  # Flutter mobile app
+├── relearn-chrome-extension/   # Chrome extension (vanilla JS, MV3)
+├── relearn-backend/            # Fastify API (TypeScript, Prisma)
+├── relearn-web/                # Next.js 14 web app
+└── relearn-mobile/             # Flutter mobile app
 ```
-
-Each project has its own `package.json`/tooling and can be developed independently.

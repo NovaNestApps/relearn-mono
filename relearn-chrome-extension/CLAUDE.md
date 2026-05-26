@@ -92,6 +92,27 @@ Navigation between pages uses `window.location.href = chrome.runtime.getURL('src
 - Ollama requires `OLLAMA_ORIGINS=chrome-extension://*` env var when starting the server, otherwise CORS blocks extension requests.
 - `window.ai` API is experimental. Check `window.ai?.languageModel?.capabilities()` before assuming availability.
 
+## Backend API Endpoints Used
+
+All calls in `src/services/api-service.js`:
+
+| Method | Endpoint | Purpose |
+|--------|----------|---------|
+| POST | `/api/auth/login\|register\|refresh` | Auth |
+| GET/POST | `/api/summaries` | Sync summaries |
+| GET | `/api/flashcards` | Sync flashcards |
+| GET | `/api/quizzes` | Sync quizzes |
+| POST | `/api/pretest/generate` | Generate pre-read quiz (`generatePretest`) |
+| POST | `/api/pretest/:id/submit` | Submit quiz answers (`submitPretest`) |
+
+## Pre-Read Quiz Flow
+
+1. User opens saved summary in `details.html`
+2. "Pre-read Quiz" button calls `apiService.generatePretest(url, title)`
+3. Questions rendered inline — user selects answers
+4. Submit calls `apiService.submitPretest(pretestId, answers, phase)`
+5. Score shown in `pretestContainer`
+
 ## No Tests Currently
 
 The `tests/` directory exists but is empty. Manual testing workflow: reload extension → navigate to a page → trigger read action → verify output in side panel.

@@ -1,6 +1,6 @@
 # Relearn — Chrome Extension
 
-Chrome extension (Manifest V3) that reads any webpage with AI and generates summaries, Q&A, flashcards, and quizzes. Runs fully on-device — no account required.
+Chrome extension (Manifest V3) that reads any webpage with AI and generates summaries, Q&A, flashcards, quizzes, and pre-read assessments. Runs fully on-device — no account required.
 
 ## Features
 
@@ -8,6 +8,7 @@ Chrome extension (Manifest V3) that reads any webpage with AI and generates summ
 - **Q&A** — ask questions about the current page in context
 - **Flashcard generation** — auto-generates study cards scaled to content length
 - **Quiz generation** — multiple-choice, true/false, short-answer with difficulty levels
+- **Pre-read quiz** — generate a knowledge-check quiz before reading a saved page
 - **Study mode** — spaced-repetition flashcard review
 - **Local-first** — all processing stays on-device by default
 - **Multi-provider fallback** — Chrome AI → Ollama → WebLLM, automatic and silent
@@ -18,42 +19,40 @@ Chrome extension (Manifest V3) that reads any webpage with AI and generates summ
 - Chrome Extension Manifest V3
 - Service Worker architecture with message-passing IPC
 - Offscreen Document for Chrome AI / WebLLM API access
-- Side Panel UI (not popup)
+- Side Panel UI
 
 ## Project Structure
 
 ```
 relearn-chrome-extension/
-├── manifest.json                    # Extension config (MV3)
-├── assets/icons/                    # 16x16, 48x48, 128x128 PNGs
+├── manifest.json
+├── assets/icons/
 └── src/
-    ├── background/
-    │   └── background.js            # Service Worker — AI routing, message handling
-    ├── content/
-    │   └── content.js               # Runs on all pages — DOM extraction
+    ├── background/background.js        Service Worker — AI routing, message handling
+    ├── content/content.js              Content script — DOM extraction
     ├── offscreen/
-    │   ├── offscreen.html           # Hidden page for Chrome AI / WebLLM
-    │   └── offscreen.js             # Handles GPU/window.ai access
+    │   ├── offscreen.html
+    │   └── offscreen.js                Chrome AI / WebLLM (GPU) access
     ├── popup/
-    │   ├── popup.html / popup.js    # Main side panel — auth, reading, Q&A
-    │   ├── summaries.html / .js     # Saved summaries grid
-    │   ├── details.html / .js       # Summary detail + artifact generation
-    │   ├── study.html / .js         # Flashcard spaced-repetition
-    │   ├── quiz.html / .js          # Interactive quiz with scoring
-    │   └── storage.js               # chrome.storage.local abstraction
+    │   ├── popup.html / popup.js       Main side panel — auth, reading, Q&A
+    │   ├── summaries.html / .js        Saved summaries grid
+    │   ├── details.html / .js          Summary detail + artifacts + pre-read quiz UI
+    │   ├── study.html / .js            Flashcard spaced-repetition
+    │   ├── quiz.html / .js             Interactive quiz
+    │   └── storage.js                  chrome.storage.local abstraction
     ├── services/
-    │   ├── ai-service.js            # Unified AI provider with auto-fallback
-    │   ├── chrome-ai.js             # Chrome AI (Gemini Nano) provider
-    │   ├── ollama-service.js        # Ollama local server provider
-    │   ├── webllm-service.js        # WebLLM WASM browser provider
-    │   ├── api-service.js           # Backend API client (auth, sync)
-    │   └── job-polling-service.js   # Poll backend job status
+    │   ├── ai-service.js               Unified AI provider with auto-fallback
+    │   ├── chrome-ai.js                Chrome AI (Gemini Nano) provider
+    │   ├── ollama-service.js           Ollama local server provider
+    │   ├── webllm-service.js           WebLLM WASM browser provider
+    │   ├── api-service.js              Backend API client (auth, sync, pretest)
+    │   └── job-polling-service.js      Poll backend job status
     ├── ui/
-    │   ├── notification.js          # Toast notification system
+    │   ├── notification.js
     │   └── notification.css
     └── utils/
-        ├── dom-parser.js            # Smart DOM extraction (article/main/largest)
-        └── logger.js                # Centralized logging
+        ├── dom-parser.js               Smart DOM extraction
+        └── logger.js
 ```
 
 ## Installation
@@ -69,35 +68,27 @@ No build step required.
 
 ## AI Provider Setup
 
-The extension tries providers in priority order: **Chrome AI → Ollama → WebLLM**
+Priority order: **Chrome AI → Ollama → WebLLM**
 
 ### Chrome AI (Recommended)
 
-Gemini Nano runs on-device inside Chrome.
-
-1. Go to `chrome://flags` → enable **Prompt API for Gemini Nano**
-2. Go to `chrome://flags` → enable **Optimization Guide On Device Model** (BypassPerfRequirement)
+1. `chrome://flags` → enable **Prompt API for Gemini Nano**
+2. `chrome://flags` → enable **Optimization Guide On Device Model** (BypassPerfRequirement)
 3. Restart Chrome
-4. Go to `chrome://components` → **Optimization Guide On Device Model** → Check for update
+4. `chrome://components` → **Optimization Guide On Device Model** → Check for update
 
-### Ollama (Local LLM Server)
+### Ollama
 
 ```bash
-# Install
-brew install ollama
-
-# Start server with extension CORS permission
 OLLAMA_ORIGINS=chrome-extension://* ollama serve
-
-# Pull a model
 ollama pull llama3.2
 ```
 
-The extension auto-detects Ollama at `http://127.0.0.1:11434` and selects the best available model (prefers Qwen2.5:14b or similar).
+Auto-detects at `http://127.0.0.1:11434`.
 
-### WebLLM (Automatic Fallback)
+### WebLLM
 
-Requires WebGPU (Chrome 113+). First run downloads ~2GB model and caches it. No setup needed.
+Requires WebGPU (Chrome 113+). First run downloads ~2GB model. No setup needed.
 
 ## Usage
 
@@ -105,25 +96,30 @@ Requires WebGPU (Chrome 113+). First run downloads ~2GB model and caches it. No 
 |--------|-----|
 | Read page | Click extension → **Read This Page** |
 | Ask question | Click **Ask a Question** → type query |
-| Quick read | `Alt + Shift + R` keyboard shortcut |
+| Quick read | `Alt + Shift + R` |
 | View saved summaries | Click summaries icon in side panel |
+| Pre-read quiz | Open a saved summary → **Pre-read Quiz** button |
 | Study flashcards | Open a summary → **Study** |
 | Take quiz | Open a summary → **Quiz** |
 
 ## Backend Integration (Optional)
 
-For cloud sync, the extension connects to the backend API at `http://localhost:3001` (dev) or a configured production URL.
+For cloud sync and pretest features, the extension connects to `http://localhost:3001` (dev).
 
-**Auth endpoints used:**
+**Auth:**
 - `POST /api/auth/login`
 - `POST /api/auth/register`
 - `POST /api/auth/refresh`
 
-**Sync endpoints used:**
+**Sync:**
 - `GET/POST /api/summaries`
 - `GET /api/flashcards`
 - `GET /api/quizzes`
 - `GET /api/job/:jobId/status`
+
+**Pre-Testing:**
+- `POST /api/pretest/generate`  — generate quiz before reading
+- `POST /api/pretest/:id/submit` — submit answers
 
 The extension works fully offline without a backend — backend sync is optional.
 
@@ -136,23 +132,9 @@ The extension works fully offline without a backend — backend sync is optional
 | Content script | Page DevTools → Console (filter by extension) |
 | Offscreen doc | `chrome://extensions/` → extension → offscreen |
 
-## Keyboard Shortcut
-
-`Alt + Shift + R` — read current page. Configurable in `chrome://extensions/shortcuts`.
-
-## Publishing to Chrome Web Store
-
-```bash
-# Zip extension (exclude dev files)
-zip -r relearn-chrome-extension-v1.0.0.zip relearn-chrome-extension/ \
-  -x "*.git*" "*.DS_Store" "*.idea*"
-```
-
-Upload to [Chrome Developer Dashboard](https://chrome.google.com/webstore/devconsole).
-
 ## Storage
 
-Uses `chrome.storage.local` with 10MB quota. Key namespaces: `summaries`, `settings`, `stats`, `auth_tokens`, `user_info`. Storage usage is tracked — warns at 75%, 90%, 95% capacity.
+`chrome.storage.local` (10MB quota). Key namespaces: `summaries`, `settings`, `stats`, `auth_tokens`, `user_info`.
 
 ## Privacy
 
