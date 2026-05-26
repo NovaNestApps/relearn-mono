@@ -130,6 +130,22 @@ export type TeachBackEvaluationResult = {
     repairFlashcards: Flashcard[];
 };
 
+export type TeachBackResult = {
+    attemptId: string;
+    score: number;
+    feedback: string;
+    gaps: string[];
+    followUpQuestions: string[];
+};
+
+export type TeachBackAttemptSummary = {
+    id: string;
+    score: number;
+    feedback: string;
+    gaps: string[];
+    createdAt: string;
+};
+
 export type ConceptNode = {
     id: string;
     label: string;
