@@ -32,4 +32,7 @@ class ApiEndpoints {
 
   static const weakspots = '/analytics/weakspots';
   static const remediation = '/analytics/remediation';
+
+  static const graph = '/graph';
+  static String pageGraph(String pageId) => '/graph/page/$pageId';
 }
