@@ -187,6 +187,27 @@ export type ConceptMap = {
     generatedAt?: string;
 };
 
+// Concept graph types (backend /api/graph)
+export type GraphNode = {
+    id: string;
+    name: string;
+    description: string | null;
+    createdAt: string;
+};
+
+export type GraphEdge = {
+    id: string;
+    sourceId: string;
+    targetId: string;
+    relationship: string;
+    strength: number;
+};
+
+export type GraphResponse = {
+    nodes: GraphNode[];
+    edges: GraphEdge[];
+};
+
 export type StudyRoomParticipant = {
     userId: string;
     name?: string;
