@@ -18,4 +18,6 @@ class ApiEndpoints {
       '/flashcards/summary/$summaryId';
   static String quizzesBySummary(String summaryId) =>
       '/quizzes/summary/$summaryId';
+
+  static const flashcardReviews = '/flashcard-reviews';
 }

@@ -3,6 +3,7 @@ import type {
     PageItem,
     Summary,
     Flashcard,
+    FlashcardReview,
     Quiz,
     ClaimCitation,
     SummaryVerificationResult,
@@ -180,6 +181,16 @@ export const FlashcardsApi = {
             message: data?.message
         };
     }
+};
+
+export const FlashcardReviewsApi = {
+    create: async (payload: {
+        flashcardId: string;
+        correct: boolean;
+        timeTaken: number;
+        confidence: 1 | 2 | 3 | 4;
+    }): Promise<FlashcardReview> =>
+        (await api.post('/flashcard-reviews', payload)).data.review,
 };
 
 export const QuizzesApi = {

@@ -23,6 +23,16 @@ export type Flashcard = {
     tags?: string[];
 };
 
+export type FlashcardReview = {
+    id: string;
+    userId: string;
+    flashcardId: string;
+    correct: boolean;
+    timeTaken: number;
+    confidence: 1 | 2 | 3 | 4;
+    reviewedAt: string;
+};
+
 export type Quiz = {
     id: string;
     pageId: string;

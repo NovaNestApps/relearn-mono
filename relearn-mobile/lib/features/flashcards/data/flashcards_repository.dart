@@ -7,6 +7,20 @@ class FlashcardsRepository {
   final Dio dio;
   FlashcardsRepository(this.dio);
 
+  Future<void> postReview({
+    required String flashcardId,
+    required bool correct,
+    required int timeTaken,
+    required int confidence,
+  }) async {
+    await dio.post(ApiEndpoints.flashcardReviews, data: {
+      'flashcardId': flashcardId,
+      'correct': correct,
+      'timeTaken': timeTaken,
+      'confidence': confidence.clamp(1, 4),
+    });
+  }
+
   Future<List<Flashcard>> bySummaryId(String summaryId) async {
     try {
       final res = await dio.get(ApiEndpoints.flashcardsBySummary(summaryId));

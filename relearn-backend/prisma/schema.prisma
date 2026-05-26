@@ -22,12 +22,17 @@ model User {
   updatedAt    DateTime  @updatedAt
   
   // Relations
-  pages        Page[]
-  summaries    Summary[]
-  flashcards   Flashcard[]
-  quizzes      Quiz[]
-  sessions     Session[]
-  
+  pages             Page[]
+  summaries         Summary[]
+  flashcards        Flashcard[]
+  quizzes           Quiz[]
+  sessions          Session[]
+  flashcardReviews  FlashcardReview[]
+  teachbackAttempts TeachBackAttempt[]
+  pretestAttempts   PretestAttempt[]
+  studySessions     StudySession[]
+  concepts          Concept[]
+
   @@index([email])
   @@map("users")
 }
@@ -58,13 +63,16 @@ model Page {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   
-  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  summaries   Summary[]
-  flashcards  Flashcard[]
-  quizzes     Quiz[]
-  
+  user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  summaries         Summary[]
+  flashcards        Flashcard[]
+  quizzes           Quiz[]
+  teachbackAttempts TeachBackAttempt[]
+  pretestAttempts   PretestAttempt[]
+  pageConcepts      PageConcept[]
+
   @@index([userId, createdAt])
-  @@index([url])  // ← Changed this line
+  @@index([url])
   @@map("pages")
 }
 
@@ -91,13 +99,15 @@ model Flashcard {
   pageId    String
   question  String   @db.Text
   answer    String   @db.Text
-  difficulty String  @default("medium") // 'easy', 'medium', 'hard'
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  page      Page     @relation(fields: [pageId], references: [id], onDelete: Cascade)
-  
+  difficulty  String   @default("medium") // 'easy', 'medium', 'hard'
+  conceptTags String[] @default([])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user    User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  page    Page              @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  reviews FlashcardReview[]
+
   @@index([userId])
   @@index([pageId])
   @@map("flashcards")
@@ -127,10 +137,120 @@ model QuizQuestion {
   options       Json     // Array of options
   correctAnswer String
   explanation   String?  @db.Text
+  conceptTags   String[] @default([])
   createdAt     DateTime @default(now())
-  
-  quiz          Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
-  
+
+  quiz Quiz @relation(fields: [quizId], references: [id], onDelete: Cascade)
+
   @@index([quizId])
   @@map("quiz_questions")
+}
+
+model FlashcardReview {
+  id          String   @id @default(uuid())
+  userId      String
+  flashcardId String
+  correct     Boolean
+  timeTaken   Int
+  confidence  Int      // 1–4: 1=again, 2=hard, 3=good, 4=easy
+  reviewedAt  DateTime @default(now())
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  flashcard Flashcard @relation(fields: [flashcardId], references: [id], onDelete: Cascade)
+
+  @@index([userId, reviewedAt])
+  @@index([flashcardId])
+  @@map("flashcard_reviews")
+}
+
+model TeachBackAttempt {
+  id          String   @id @default(uuid())
+  userId      String
+  pageId      String
+  attemptText String   @db.Text
+  gaps        Json
+  score       Float
+  feedback    String   @db.Text
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  page Page @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@index([userId, pageId])
+  @@map("teachback_attempts")
+}
+
+model PretestAttempt {
+  id        String   @id @default(uuid())
+  userId    String
+  pageId    String?
+  url       String   @db.Text
+  questions Json
+  answers   Json
+  phase     String   // 'before' | 'after'
+  score     Float?
+  createdAt DateTime @default(now())
+
+  user User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  page Page? @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@index([userId, url])
+  @@map("pretest_attempts")
+}
+
+model StudySession {
+  id          String    @id @default(uuid())
+  userId      String
+  cardIds     String[]
+  sessionType String    // 'interleaved' | 'blocked'
+  results     Json?
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("study_sessions")
+}
+
+model Concept {
+  id          String   @id @default(uuid())
+  userId      String
+  name        String
+  description String?  @db.Text
+  createdAt   DateTime @default(now())
+
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sourceRelations ConceptRelation[] @relation("SourceConcept")
+  targetRelations ConceptRelation[] @relation("TargetConcept")
+  pageLinks       PageConcept[]
+
+  @@unique([userId, name])
+  @@index([userId])
+  @@map("concepts")
+}
+
+model ConceptRelation {
+  id           String  @id @default(uuid())
+  sourceId     String
+  targetId     String
+  relationship String  // 'related' | 'prerequisite' | 'contrasts' | 'extends'
+  strength     Float
+
+  source Concept @relation("SourceConcept", fields: [sourceId], references: [id], onDelete: Cascade)
+  target Concept @relation("TargetConcept", fields: [targetId], references: [id], onDelete: Cascade)
+
+  @@unique([sourceId, targetId])
+  @@map("concept_relations")
+}
+
+model PageConcept {
+  pageId    String
+  conceptId String
+
+  page    Page    @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  concept Concept @relation(fields: [conceptId], references: [id], onDelete: Cascade)
+
+  @@id([pageId, conceptId])
+  @@map("page_concepts")
 }

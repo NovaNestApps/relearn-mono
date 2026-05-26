@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
-import { FlashcardsApi } from "@/hooks/useApi";
+import { FlashcardsApi, FlashcardReviewsApi } from "@/hooks/useApi";
 import type { Flashcard, MemoryState, QueueBucket } from "@/types";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -43,6 +43,7 @@ function StudyPageContent() {
     const [dontKnow, setDontKnow] = useState<number>(0);
     const [done, setDone] = useState(false);
     const [pendingOutcome, setPendingOutcome] = useState<Outcome | null>(null);
+    const [cardStartedAt, setCardStartedAt] = useState(() => Date.now());
     const [err, setErr] = useState<string | null>(null);
     const [syncing, setSyncing] = useState(false);
 
@@ -136,6 +137,14 @@ function StudyPageContent() {
         setMemoryStates(nextStates);
         saveMemoryStates(pageId, nextStates);
 
+        FlashcardReviewsApi.create({
+            flashcardId: current.id,
+            correct: pendingOutcome === "know",
+            timeTaken: Math.max(0, Date.now() - cardStartedAt),
+            confidence: Math.min(4, Math.max(1, confidence)) as 1 | 2 | 3 | 4,
+        }).catch(() => {});
+
+
         if (pendingOutcome === "know") setKnow((x) => x + 1);
         else setDontKnow((x) => x + 1);
 
@@ -144,6 +153,7 @@ function StudyPageContent() {
         if (idx < total - 1) {
             setIdx((i) => i + 1);
             setFlipped(false);
+            setCardStartedAt(Date.now());
         } else {
             setDone(true);
         }
