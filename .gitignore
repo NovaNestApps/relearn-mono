@@ -13,3 +13,6 @@ ehthumbs.db
 # Monorepo scratch
 *.log
 *.tmp
+
+# Git worktrees
+.worktrees/
