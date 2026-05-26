@@ -47,8 +47,8 @@ export async function createFlashcardChain() {
   const template = `You are an educational content expert. Generate {count} flashcards from the following content.
 Each flashcard should have a clear question and a concise answer.
 
-Format your response as a JSON array of objects with "question" and "answer" fields.
-Example: [{"question": "What is X?", "answer": "X is..."}, ...]
+Format your response as a JSON array of objects with "question", "answer", "difficulty", and "conceptTags" fields.
+Example: [{"question": "What is X?", "answer": "X is...", "difficulty": "medium", "conceptTags": ["concept1", "concept2"]}]
 
 Content: {content}
 

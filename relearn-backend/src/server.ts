@@ -21,6 +21,8 @@ import flashcardReviewRoutes from './api/routes/flashcard-review.routes';
 import studySessionRoutes from './api/routes/study-session.routes';
 import teachbackRoutes from './api/routes/teachback.routes';
 import pretestRoutes from './api/routes/pretest.routes';
+import analyticsRoutes from './api/routes/analytics.routes';
+import './llm/processors/remediation-generator';
 
 const server = Fastify({
   logger: true,
@@ -78,6 +80,7 @@ async function start() {
     server.register(studySessionRoutes, { prefix: '/api/study' });
     server.register(teachbackRoutes, { prefix: '/api/pages' });
     server.register(pretestRoutes, { prefix: '/api/pretest' });
+    server.register(analyticsRoutes, { prefix: '/api/analytics' });
 
     // Setup WebSocket
     setupWebSocket(server);
