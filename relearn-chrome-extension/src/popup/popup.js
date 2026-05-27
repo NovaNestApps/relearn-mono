@@ -60,6 +60,7 @@ let currentSummary = null; // Store current summary text
 let currentProvider = null; // Store current provider
 let currentSavedId = null; // Track if current summary is saved
 let pageId = null;
+let renderedSummaries = []; // Cache for card click → show summary
 
 /**
  * Wait for markdown libraries to load
@@ -221,39 +222,40 @@ function setupEventListeners() {
 
   const viewSummariesBtn = document.getElementById('viewSummariesBtn');
   if (viewSummariesBtn) {
-    viewSummariesBtn.addEventListener('click', async () => {
-      const url = chrome.runtime.getURL('src/popup/summaries.html');
-      const existing = await chrome.tabs.query({ url });
-      if (existing.length > 0) {
-        await chrome.tabs.update(existing[0].id, { active: true });
-        await chrome.windows.update(existing[0].windowId, { focused: true });
-      } else {
-        chrome.tabs.create({ url });
-      }
+    viewSummariesBtn.addEventListener('click', () => switchTab('history'));
+  }
+
+  const homeNavBtn = document.getElementById('homeNavBtn');
+  if (homeNavBtn) {
+    homeNavBtn.addEventListener('click', () => switchTab('home'));
+  }
+
+  const historyNavBtn = document.getElementById('historyNavBtn');
+  if (historyNavBtn) {
+    historyNavBtn.addEventListener('click', () => switchTab('history'));
+  }
+
+  const settingsBtn = document.getElementById('settingsBtn');
+  if (settingsBtn) {
+    settingsBtn.addEventListener('click', () => switchTab('settings'));
+  }
+
+  const settingsLogoutBtn = document.getElementById('settingsLogoutBtn');
+  if (settingsLogoutBtn) {
+    settingsLogoutBtn.addEventListener('click', () => authElements.logoutBtn.click());
+  }
+
+  const historySearch = document.getElementById('historySearch');
+  if (historySearch) {
+    let searchTimer;
+    historySearch.addEventListener('input', (e) => {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => loadHistorySummaries(e.target.value), 300);
     });
   }
 
-  // Settings panel
-  const settingsBtn = document.getElementById('settingsBtn');
-  const closeSettingsBtn = document.getElementById('closeSettingsBtn');
-  const settingsPanel = document.getElementById('settingsPanel');
   const saveOpenAIBtn = document.getElementById('saveOpenAIBtn');
   const clearOpenAIBtn = document.getElementById('clearOpenAIBtn');
-
-  if (settingsBtn) {
-    settingsBtn.addEventListener('click', async () => {
-      settingsPanel.classList.toggle('hidden');
-      if (!settingsPanel.classList.contains('hidden')) {
-        await loadOpenAISettings();
-      }
-    });
-  }
-
-  if (closeSettingsBtn) {
-    closeSettingsBtn.addEventListener('click', () => {
-      settingsPanel.classList.add('hidden');
-    });
-  }
 
   if (saveOpenAIBtn) {
     saveOpenAIBtn.addEventListener('click', handleSaveOpenAIKey);
@@ -312,6 +314,8 @@ async function handleSaveOpenAIKey() {
     if (response?.success && response.status?.openai?.available) {
       statusEl.textContent = '✓ OpenAI active — ready to use';
       statusEl.style.color = '#38a169';
+      aiStatus = response.status;
+      updateProviderDisplay();
     } else {
       statusEl.textContent = '⚠ Saved but activation failed — check key is valid';
       statusEl.style.color = '#e53e3e';
@@ -495,7 +499,6 @@ else {
 function showQuestionInput() {
   elements.questionSection.classList.remove('hidden');
   elements.questionInput.focus();
-  hideResults();
   hideError();
   hideWarning();
 }
@@ -595,7 +598,7 @@ async function handleSaveResult() {
     try {
         // Check if already saved
         if (currentSavedId) {
-            showError('This summary is already saved!');
+            showSuccess('Already saved!');
             return;
         }
 
@@ -707,6 +710,9 @@ async function handleSaveResult() {
         // Update summaries count
         await updateSummariesCount();
 
+        // Refresh recent summaries list
+        await loadRecentSummaries();
+
         // Reset button after 3 seconds
         setTimeout(() => {
             elements.saveResultBtn.innerHTML = originalHTML;
@@ -725,16 +731,20 @@ async function handleSaveResult() {
  */
 async function updateSummariesCount() {
   try {
-    const stats = await StorageManager.getStats();
     const countElement = document.getElementById('summariesCount');
-    
-    if (countElement) {
-      const count = stats?.totalSummaries || 0;
-      countElement.textContent = count;
-      console.log('✅ Updated summaries count:', count);
-    } else {
-      console.warn('⚠️ summariesCount element not found');
+    if (!countElement) return;
+
+    const isAuth = await APIService.isAuthenticated();
+    if (isAuth) {
+      const response = await APIService.getSummaries(1, 1);
+      if (response.success) {
+        countElement.textContent = response.data.pagination.total;
+        return;
+      }
     }
+
+    const summaries = await StorageManager.getAllSummaries();
+    countElement.textContent = summaries.length;
   } catch (error) {
     console.error('Failed to update summaries count:', error);
   }
@@ -1040,7 +1050,10 @@ async function checkAuth() {
     // Load and display user info
     const user = await StorageManager.getUserInfo();
     if (user) {
-      authElements.userName.textContent = user.name || user.email;
+      const displayName = user.name || user.email;
+      authElements.userName.textContent = displayName;
+      const settingsUserNameEl = document.getElementById('settingsUserName');
+      if (settingsUserNameEl) settingsUserNameEl.textContent = displayName;
     }
     
     // Continue with normal app initialization
@@ -1122,8 +1135,11 @@ authElements.loginBtn.addEventListener('click', async () => {
       authElements.mainScreen.classList.remove('hidden');
       
       // Update user info
-      authElements.userName.textContent = response.data.user.name || response.data.user.email;
-      
+      const loginDisplayName = response.data.user.name || response.data.user.email;
+      authElements.userName.textContent = loginDisplayName;
+      const settingsUserNameElLogin = document.getElementById('settingsUserName');
+      if (settingsUserNameElLogin) settingsUserNameElLogin.textContent = loginDisplayName;
+
       // Clear form
       authElements.loginEmail.value = '';
       authElements.loginPassword.value = '';
@@ -1183,8 +1199,11 @@ authElements.registerBtn.addEventListener('click', async () => {
       authElements.mainScreen.classList.remove('hidden');
       
       // Update user info
-      authElements.userName.textContent = response.data.user.name || response.data.user.email;
-      
+      const regDisplayName = response.data.user.name || response.data.user.email;
+      authElements.userName.textContent = regDisplayName;
+      const settingsUserNameElReg = document.getElementById('settingsUserName');
+      if (settingsUserNameElReg) settingsUserNameElReg.textContent = regDisplayName;
+
       // Clear form
       authElements.registerName.value = '';
       authElements.registerEmail.value = '';
@@ -1213,14 +1232,27 @@ authElements.registerBtn.addEventListener('click', async () => {
  */
 authElements.logoutBtn.addEventListener('click', async () => {
   console.log('🔐 Logging out...');
-  
+
   try {
     await APIService.logout();
-    
+
+    // Clear local summaries so next user doesn't see stale data
+    await StorageManager.clearAllSummaries();
+
+    // Reset in-memory state
+    currentSummary = null;
+    currentContext = null;
+    currentSavedId = null;
+    pageId = null;
+
+    // Hide any visible results
+    hideResults();
+    hideError();
+
     // Show login screen
     authElements.mainScreen.classList.add('hidden');
     authElements.authScreen.classList.remove('hidden');
-    
+
     console.log('✅ Logged out successfully');
   } catch (error) {
     console.error('❌ Logout error:', error);
@@ -1287,7 +1319,150 @@ async function initializeApp() {
   // Update summaries count
   await updateSummariesCount();
 
+  // Load recent summaries on home tab
+  await loadRecentSummaries();
+
   console.log('✅ Main app ready');
+}
+
+// ============================================
+// TAB SWITCHING
+// ============================================
+
+function switchTab(tabName) {
+  const tabs = {
+    home: { panel: document.getElementById('homeTab'), btn: document.getElementById('homeNavBtn') },
+    history: { panel: document.getElementById('historyTab'), btn: document.getElementById('historyNavBtn') },
+    settings: { panel: document.getElementById('settingsPanel'), btn: document.getElementById('settingsBtn') }
+  };
+
+  Object.entries(tabs).forEach(([name, { panel, btn }]) => {
+    if (name === tabName) {
+      panel?.classList.remove('hidden');
+      btn?.classList.add('active');
+    } else {
+      panel?.classList.add('hidden');
+      btn?.classList.remove('active');
+    }
+  });
+
+  if (tabName === 'history') loadHistorySummaries();
+  if (tabName === 'settings') loadOpenAISettings();
+}
+
+async function loadRecentSummaries() {
+  const container = document.getElementById('recentSummariesList');
+  if (!container) return;
+
+  try {
+    const summaries = (await StorageManager.getAllSummaries()).slice(0, 5);
+
+    if (!summaries.length) {
+      container.innerHTML = '<div class="empty-state">Read a page to get started</div>';
+      return;
+    }
+
+    renderedSummaries = summaries;
+    container.innerHTML = summaries.map((s, i) => renderSummaryCard(s, i)).join('');
+  } catch (err) {
+    console.error('loadRecentSummaries:', err);
+  }
+}
+
+async function loadHistorySummaries(query = '') {
+  const container = document.getElementById('historyList');
+  if (!container) return;
+
+  try {
+    let summaries = await StorageManager.getAllSummaries();
+
+    if (query) {
+      const q = query.toLowerCase();
+      summaries = summaries.filter(s =>
+        (s.title || '').toLowerCase().includes(q) ||
+        (s.summary || '').toLowerCase().includes(q)
+      );
+    }
+
+    if (!summaries.length) {
+      container.innerHTML = `<div class="empty-state">${query ? 'No results found' : 'No saved summaries yet'}</div>`;
+      return;
+    }
+
+    renderedSummaries = summaries;
+    container.innerHTML = summaries.map((s, i) => renderSummaryCard(s, i)).join('');
+  } catch (err) {
+    console.error('loadHistorySummaries:', err);
+    container.innerHTML = '<div class="empty-state">Failed to load summaries</div>';
+  }
+}
+
+function renderSummaryCard(s, index) {
+  const title = s.title || s.page?.title || 'Untitled';
+  const url = s.url || s.page?.url || '';
+  const content = s.content || s.summary || '';
+  const date = s.createdAt ? getTimeAgo(new Date(s.createdAt)) : '';
+  const preview = stripMarkdown(content).slice(0, 120);
+
+  return `
+    <div class="summary-card" data-index="${index}">
+      <div class="card-meta-row">
+        <span class="card-badge card-badge-purple">Summary</span>
+        <span class="card-date">${date}</span>
+        ${url ? `<button class="btn-ghost" data-open-url="${escapeAttr(url)}" style="margin-left:auto;font-size:11px;padding:0" title="Open page">↗</button>` : ''}
+      </div>
+      <div class="card-title">${escapeHtml(title)}</div>
+      <div class="card-preview">${escapeHtml(preview)}${content.length > 120 ? '…' : ''}</div>
+    </div>
+  `;
+}
+
+// Clicking a card navigates to details.html (flashcards, quizzes, full summary)
+document.addEventListener('click', (e) => {
+  // External link button — open URL, don't bubble to card
+  const openBtn = e.target.closest('[data-open-url]');
+  if (openBtn) {
+    e.stopPropagation();
+    chrome.tabs.create({ url: openBtn.dataset.openUrl });
+    return;
+  }
+
+  const card = e.target.closest('.summary-card[data-index]');
+  if (card) {
+    const idx = parseInt(card.dataset.index, 10);
+    const s = renderedSummaries[idx];
+    if (!s || !s.id) return;
+    const detailsUrl = chrome.runtime.getURL(`src/popup/details.html?id=${s.id}`);
+    window.location.href = detailsUrl;
+  }
+});
+
+function getTimeAgo(date) {
+  const diff = Date.now() - date.getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 7) return `${days}d ago`;
+  return date.toLocaleDateString();
+}
+
+function stripMarkdown(text) {
+  return (text || '')
+    .replace(/#{1,6}\s/g, '')
+    .replace(/\*\*(.+?)\*\*/g, '$1')
+    .replace(/\*(.+?)\*/g, '$1')
+    .replace(/`(.+?)`/g, '$1')
+    .replace(/\[(.+?)\]\(.+?\)/g, '$1')
+    .replace(/^\s*[-*+]\s/gm, '')
+    .replace(/^\s*\d+\.\s/gm, '')
+    .trim();
+}
+
+function escapeAttr(str) {
+  return (str || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;');
 }
 
 /**

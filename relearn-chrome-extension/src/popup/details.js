@@ -231,8 +231,7 @@ async function initialize() {
 function setupEventListeners() {
   // Back button
   elements.backBtn.addEventListener('click', () => {
-    const url = chrome.runtime.getURL('src/popup/summaries.html');
-    chrome.tabs.update({ url: url });
+    window.location.href = chrome.runtime.getURL('src/popup/popup.html');
   });
 
   // Copy button

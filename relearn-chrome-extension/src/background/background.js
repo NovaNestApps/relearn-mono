@@ -117,6 +117,7 @@ async function handleInitializeAI(sendResponse) {
 
 async function handleReinitializeAI(sendResponse) {
   try {
+    initializationPromise = null; // Force fresh init on next call
     if (aiService) {
       await aiService.reinitialize();
     } else {

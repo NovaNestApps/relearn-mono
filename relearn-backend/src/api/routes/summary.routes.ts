@@ -301,6 +301,15 @@ app.post('/generate', async (request, reply) => {
     throw new ForbiddenError('You do not have access to this page');
   }
 
+  // Return existing summary rather than creating a duplicate
+  const existing = await prisma.summary.findFirst({
+    where: { pageId, userId, type: 'default' },
+  });
+
+  if (existing) {
+    return reply.send({ summary: existing, message: 'Summary already exists' });
+  }
+
   // Create summary directly (no job)
   const summary = await prisma.summary.create({
     data: {
